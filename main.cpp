@@ -23,17 +23,26 @@ using json = nlohmann::json;
 
 static Uint32 wakeup_on_mpv_events;
 
-const uint16_t BUFFER_SIZE = 512;
-const char *PIPE = "/tmp/mpvpipe";
-
-const uint16_t MARGIN_SIZE = 8;
-const float DEFAULT_OPACITY = 0.5;
+struct Color {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+};
 
 struct Message {
     time_t time;
     std::string from;
     std::string text;
+    Color color = {255, 255, 255};
 };
+
+const uint16_t BUFFER_SIZE = 512;
+const char *PIPE = "/tmp/mpvpipe";
+
+const uint16_t MARGIN_SIZE = 8;
+const float DEFAULT_OPACITY = 0.75;
+const Color USER_COLOR = {173, 216, 230};
+const Color SYSTEM_COLOR = {180, 180, 180};
 
 void on_msg(const char *s, bool self);
 
@@ -177,25 +186,26 @@ int parse_time(const char *timestr) {
     return t;
 }
 
-void writechat(const char *text, const char *from = NULL) {
+void writechat(const char *text, const char *from, Color color) {
     Message msg;
     time_t t = time(0);
     msg.time = t;
     msg.from = from ? from : username;
     msg.text = text;
+    msg.color = color;
 
     std::lock_guard<std::mutex> guard(chat_log_mutex);
     chat_log.push_back(msg);
     scroll_to_bottom = true;
 }
 
-void msg(const char *text, const char *from = NULL) {
+void msg(const char *text, const char *from, Color color) {
     if (!text)
         return;
 
     int len = strlen(text);
 
-    writechat(text, from);
+    writechat(text, from, color);
 
     if (!(from || (len > 2 && text[0] == ':')))
         sendmsg(text);
@@ -214,10 +224,10 @@ void on_msg(const char *s, bool self) {
     if (com == "pp") {
         mpv_command_string(mpv, "cycle pause");
         auto status = getstatus();
-        msg(status.c_str());
+        msg(status.c_str(), NULL, SYSTEM_COLOR);
     } else if (com == "STATUS") {
         auto status = getstatus();
-        msg(status.c_str());
+        msg(status.c_str(), NULL, SYSTEM_COLOR);
     } else if (com == "NEXT") {
         mpv_command_string(mpv, "playlist-next");
     } else if (com == "PREV") {
@@ -394,7 +404,10 @@ void chatbox() {
             formatted += msg.from;
             formatted += ": ";
             formatted += msg.text;
+            ImGui::PushStyleColor(
+                0, ImColor(msg.color.r, msg.color.g, msg.color.b));
             ImGui::TextWrapped(formatted.c_str());
+            ImGui::PopStyleColor(1);
         }
     }
     if (scroll_to_bottom) {
@@ -406,7 +419,7 @@ void chatbox() {
     if (ImGui::InputText("", chat_input_buf, 256,
                          ImGuiInputTextFlags_EnterReturnsTrue, NULL, NULL)) {
         if (strlen(chat_input_buf)) {
-            msg(chat_input_buf);
+            msg(chat_input_buf, NULL, USER_COLOR);
             strcpy(chat_input_buf, "");
         }
     }
@@ -526,7 +539,15 @@ int main(int argc, char *argv[]) {
                 auto j = json::parse(line);
                 std::string user = j["user"];
                 std::string message = j["message"];
-                msg(message.c_str(), user.c_str());
+                int colori = 0xffffff;
+                if (j.count("color") && j["color"].is_number()) {
+                    colori = (int)j["color"];
+                }
+                Color color;
+                color.r = (0xff0000 & colori) >> 16;
+                color.g = (0x00ff00 & colori) >> 8;
+                color.b = 0x0000ff & colori;
+                msg(message.c_str(), user.c_str(), color);
             } catch (...) {
                 std::cerr << "exception: failed to parse input" << std::endl;
             }
@@ -573,7 +594,7 @@ int main(int argc, char *argv[]) {
                         }
                         if (mp_event->event_id == MPV_EVENT_PLAYBACK_RESTART) {
                             auto status = getstatus();
-                            msg(status.c_str());
+                            msg(status.c_str(), NULL, SYSTEM_COLOR);
                         }
                     }
                 }
