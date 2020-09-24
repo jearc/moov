@@ -3,36 +3,25 @@
 import re
 from moov import Moov
 import time
+from functools import reduce
 
 
-def parse_time(time_str):
-	prog = re.compile(r'(-?\d+)')
-	nums = prog.findall(time_str)
-	time = 0
-	for n in nums[:3]:
-		time = time * 60 + int(n)
-	return time
+def parse_time(string):
+	ns = re.findall(r'-?\d+', string)
+	return reduce(lambda t, n: 60*t + int(n), ns[:3], 0)
 
 
-def format_time(seconds):
-	seconds = int(round(seconds))
-	hours, seconds = seconds // 3600, seconds % 3600
-	minutes, seconds = seconds // 60, seconds % 60
-
-	time_str = ''
-	if hours > 0:
-		time_str += f'{hours}:{minutes:02}'
-	else:
-		time_str += f'{minutes}'
-	time_str += f':{seconds:02}'
-
-	return time_str
+def format_time(time):
+	s = int(round(time))
+	h, s = s // 3600, s % 3600
+	m, s = s // 60, s % 60
+	return (f'{h}:{m:02}' if h else f'{m}') + f':{s:02}'
 
 
 def format_status(status):
 	s = f'{status["pl_pos"]+1}/{status["pl_count"]} '
-	s += f'{"paused" if status["paused"] else "playing"} '
-	s += f'{format_time(status["time"])}'
+	s += 'paused' if status['paused'] else 'playing'
+	s += f'␣{format_time(status["time"])}'
 	return s
 
 
