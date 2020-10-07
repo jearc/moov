@@ -439,7 +439,7 @@ SDL_Window *init_window(float font_size)
 
 	ImGuiIO &io = ImGui::GetIO();
 	text_font = io.Fonts->AddFontFromFileTTF(
-		"/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Medium.ttf",
+		"Roboto-Medium.ttf",
 		font_size);
 
 	static const ImWchar icons_ranges[] = { 0xe000, 0xeb4c, 0 };
