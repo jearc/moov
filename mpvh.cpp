@@ -28,7 +28,6 @@ Player::Player()
 {
 	mpv = mpv_create();
 	mpv_initialize(mpv);
-	mpv_set_option_string(mpv, "vo", "opengl-cb");
 	mpv_set_option_string(mpv, "ytdl", "yes");
 
 	last_time = mpv_get_time_us(mpv);
@@ -37,7 +36,7 @@ Player::Player()
 	c_paused = true;
 	exploring = false;
 
-	syncmpv();
+	//syncmpv();
 }
 
 void Player::add_file(const char *file)
@@ -47,9 +46,9 @@ void Player::add_file(const char *file)
 	syncmpv();
 }
 
-mpv_opengl_cb_context *Player::get_opengl_cb_api()
+void Player::create_render_context(mpv_render_context **ctx, mpv_render_param render_params[])
 {
-	return (mpv_opengl_cb_context *)mpv_get_sub_api(mpv, MPV_SUB_API_OPENGL_CB);
+	mpv_render_context_create(ctx, mpv, render_params);
 }
 
 void Player::syncmpv()
@@ -64,7 +63,7 @@ void Player::syncmpv()
 	if (exploring)
 		return;
 
-	bool paused;
+	int paused;
 	mpv_get_property(mpv, "pause", MPV_FORMAT_FLAG, &paused);
 	if (paused != c_paused)
 		mpv_set_property(mpv, "pause", MPV_FORMAT_FLAG, &c_paused);

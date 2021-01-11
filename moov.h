@@ -1,6 +1,7 @@
 #include <string>
 #include <mpv/client.h>
-#include <mpv/opengl_cb.h>
+#include <mpv/render.h>
+#include <mpv/render_gl.h>
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
@@ -53,9 +54,8 @@ public:
 	void explore_cancel();
 	void explore_accept();
 	void explore();
-	void sendstatus();
 	void update();
-	mpv_opengl_cb_context *get_opengl_cb_api();
+	void create_render_context(mpv_render_context **ctx, mpv_render_param render_params[]);
 	void set_audio(int64_t track);
 	void set_sub(int64_t track);
 

@@ -12,3 +12,7 @@ guide
 .vscode
 imgui.ini
 __pycache__
+external
+x64
+youtube-dl.exe
+*.dll

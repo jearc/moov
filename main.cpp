@@ -1,21 +1,23 @@
 #include <time.h>
-#include <stdio.h>
 #include <errno.h>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
-#include <mpv/opengl_cb.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <mpv/render.h>
+#include <mpv/render_gl.h>
 #include <vector>
 #include <string>
+#include <iostream>
+#include <mutex>
+#include <queue>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "moov.h"
 #include "ui.h"
+#include "json.h"
 
-#define MAX_MSG_LEN 1000
+using json = nlohmann::json;
 
 ImFont *text_font;
 ImFont *icon_font;
@@ -27,7 +29,7 @@ void *get_proc_address_mpv(void *fn_ctx, const char *name)
 
 void on_mpv_redraw(void *mpv_redraw)
 {
-	*(bool *)mpv_redraw = true;
+	//*(bool *)mpv_redraw = true;
 }
 
 bool is_fullscreen(SDL_Window *win)
@@ -76,81 +78,72 @@ void chatbox(std::vector<Message> &cl, bool scroll_to_bottom)
 
 void send_control(int64_t pos, double time, bool paused)
 {
-	uint8_t cmd = OUT_CONTROL;
-	write(1, &cmd, 1);
-	write(1, &pos, 8);
-	write(1, &time, 8);
-	write(1, &paused, 1);
+	json res;
+	res["type"] = "control";
+	res["playlist_position"] = pos;
+	res["time"] = time;
+	res["paused"] = paused;
+	std::cout << res << std::endl;
 }
 
-bool handle_instruction(Player &p, std::vector<Message> &l)
+void read_input(std::mutex &m, std::queue<json> &q)
 {
-	uint8_t cmd;
-	if (read(0, &cmd, 1) != 1)
-		return false;
-
-	switch (cmd) {
-	case IN_PAUSE: {
-		bool paused;
-		read(0, &paused, 1);
-		p.pause(paused);
-		break;
+	std::string l;
+	while (std::getline(std::cin, l))
+	{
+		std::lock_guard<std::mutex> g(m);
+		q.push(json::parse(l));
 	}
-	case IN_SEEK: {
-		double time;
-		read(0, &time, 8);
-		p.set_time(time);
-		break;
-	}
-	case IN_MESSAGE: {
-		uint32_t fg, bg;
-		read(0, &fg, 4);
-		read(0, &bg, 4);
-		uint32_t len;
-		read(0, &len, 4);
-		auto message = std::string(len + 1, '\0');
-		read(0, &message[0], len);
-		l.push_back({ message, fg, bg });
-		break;
-	}
-	case IN_ADD_FILE: {
-		uint32_t len;
-		read(0, &len, 4);
-		auto path = std::string(len + 1, '\0');
-		read(0, &path[0], len);
-		p.add_file(path.c_str());
-		break;
-	}
-	case IN_SET_PLAYLIST_POSITION: {
-		int64_t pos;
-		read(0, &pos, 8);
-		p.set_pl_pos(pos);
-		break;
-	}
-	case IN_STATUS_REQUEST: {
-		uint32_t request_id;
-		read(0, &request_id, 4);
-		uint8_t out_cmd = OUT_STATUS;
-		write(1, &out_cmd, 1);
-		write(1, &request_id, 4);
-		auto info = p.get_info();
-		write(1, &info.pl_pos, 8);
-		write(1, &info.pl_count, 8);
-		write(1, &info.c_time, 8);
-		write(1, &info.c_paused, 1);
-		break;
-	}
-	case IN_CLOSE:
-		die("closed by ipc");
-		break;
-	default:
-		die("invalid input stream state");
-		break;
-	}
-
-	return true;
 }
 
+void handle_instruction(Player &p, std::vector<Message> &l, json &j)
+{
+	auto &type = j.at("type");
+	if (type == "pause")
+	{
+		bool paused = j.at("paused");
+		p.pause(paused);
+	}
+	else if (type == "seek")
+	{
+		double time = j.at("time");
+		p.set_time(time);
+	}
+	else if (type == "message")
+	{
+		uint32_t bg = j.at("bg_color");
+		uint32_t fg = j.at("fg_color");
+		std::string msg = j.at("message");
+		l.push_back({ msg, fg, bg });
+	}
+	else if (type == "add_file")
+	{
+		std::string path = j.at("file_path");
+		p.add_file(path.c_str());
+	}
+	else if (type == "set_playlist_position")
+	{
+		int64_t pos = j.at("position");
+		p.set_pl_pos(pos);
+	}
+	else if (type == "request_status")
+	{
+		int request_id = j.at("request_id");
+		auto info = p.get_info();
+		json res;
+		res["type"] = "status";
+		res["request_id"] = request_id;
+		res["playlist_position"] = info.pl_pos;
+		res["playlist_count"] = info.pl_count;
+		res["time"] = info.c_time;
+		res["paused"] = info.c_paused;
+		std::cout << res << std::endl;
+	}
+	else if (type == "close")
+	{
+		die("closed by ipc");
+	}
+}
 
 bool button(ImRect rect, ImVec2 padding, ImFont *font, const char *label)
 {
@@ -259,12 +252,10 @@ void inputwin()
 	static char buf[1000] = { 0 };
 	if (ImGui::InputText(
 			"Input: ", buf, 1000, ImGuiInputTextFlags_EnterReturnsTrue)) {
-		uint8_t cmd = OUT_USER_INPUT;
-		write(1, &cmd, 1);
-		uint32_t len = strlen(buf);
-		write(1, &len, 4);
-		write(1, buf, len);
-		memset(buf, 0, 1000);
+		json j;
+		j["type"] = "user_input";
+		j["message"] = buf;
+		std::cout << j << std::endl;
 	}
 	ImGui::End();
 }
@@ -453,18 +444,28 @@ SDL_Window *init_window(float font_size)
 
 int main(int argc, char **argv)
 {
-	fcntl(0, F_SETFL, O_NONBLOCK);
-
 	float font_size = 30;
 	SDL_Window *window = init_window(font_size);
 	auto mpvh = Player();
-	mpv_opengl_cb_context *mpv_gl = mpvh.get_opengl_cb_api();
-	mpv_opengl_cb_init_gl(mpv_gl, NULL, get_proc_address_mpv, NULL);
+
+	mpv_render_context *mpv_ctx;
+	mpv_opengl_init_params gl_init_params{ get_proc_address_mpv, nullptr, nullptr };
+	mpv_render_param render_params[] = {
+		{ MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_OPENGL) },
+		{ MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init_params },
+		{ MPV_RENDER_PARAM_INVALID, nullptr }
+	};
+	mpvh.create_render_context(&mpv_ctx, render_params);
+	mpv_render_context_set_update_callback(mpv_ctx, on_mpv_redraw, nullptr);
 
 	bool mpv_redraw = false;
-	mpv_opengl_cb_set_update_callback(mpv_gl, on_mpv_redraw, &mpv_redraw);
 
 	std::vector<Message> cl;
+	std::queue<json> input_queue;
+	std::mutex input_lock;
+
+	auto input_thread = std::thread(read_input, std::ref(input_lock), std::ref(input_queue));
+	input_thread.detach();
 
 	int64_t t_last = 0, t_now = 0;
 	while (1) {
@@ -475,8 +476,24 @@ int main(int argc, char **argv)
 			continue;
 		t_last = t_now;
 
-		while (handle_instruction(mpvh, cl))
-			;
+		bool queue_empty = false;
+		while (!queue_empty)
+		{
+			json j;
+			{
+				std::lock_guard<std::mutex> guard(input_lock);
+				queue_empty = input_queue.empty();
+				if (!queue_empty)
+				{
+					j = input_queue.front();
+					input_queue.pop();
+				}
+			}
+			if (!queue_empty)
+			{
+				handle_instruction(mpvh, cl, j);
+			}
+		}
 
 		bool redraw = false;
 		if (mpv_redraw) {
@@ -496,7 +513,19 @@ int main(int argc, char **argv)
 		int w, h;
 		SDL_GetWindowSize(window, &w, &h);
 		glClear(GL_COLOR_BUFFER_BIT);
-		mpv_opengl_cb_draw(mpv_gl, 0, w, -h);
+
+		mpv_opengl_fbo mpfbo{
+			static_cast<int>(MPV_RENDER_PARAM_OPENGL_FBO),
+			w, h, 0
+		};
+		int flip_y = 1;
+		mpv_render_param params[] = {
+			{ MPV_RENDER_PARAM_OPENGL_FBO, &mpfbo },
+			{ MPV_RENDER_PARAM_FLIP_Y, &flip_y },
+			{ MPV_RENDER_PARAM_INVALID, nullptr }
+		};
+		mpv_render_context_render(mpv_ctx, params);
+
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame(window);
 		ImGui::NewFrame();
