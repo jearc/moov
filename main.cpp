@@ -404,134 +404,6 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mou
 	ImGui::PopStyleVar(3);
 }
 
-void inputwin()
-{
-	bool display = true;
-	ImGui::Begin("Input", &display, 0);
-
-	static char buf[1000] = { 0 };
-	if (ImGui::InputText(
-			"Input: ", buf, 1000, ImGuiInputTextFlags_EnterReturnsTrue)) {
-		json j;
-		j["type"] = "user_input";
-		j["message"] = buf;
-		std::cout << j << std::endl;
-	}
-	ImGui::End();
-}
-
-void explorewin(Player &mpvh)
-{
-	PlayerInfo i = mpvh.get_info();
-
-	static bool display = true;
-	ImGui::Begin("Explore", &display, 0);
-
-	if (ImGui::Button("Play/Pause"))
-		mpvh.toggle_explore_paused();
-
-	float progress = i.e_time / i.duration;
-	ImGui::ProgressBar(progress, ImVec2(380, 20));
-	if (ImGui::IsItemClicked() && i.duration) {
-		auto min = ImGui::GetItemRectMin();
-		auto max = ImGui::GetItemRectMax();
-		auto mouse = ImGui::GetMousePos();
-
-		float fraction = (mouse.x - min.x) / (max.x - min.x);
-		double time = fraction * i.duration;
-
-		mpvh.set_explore_time(time);
-	}
-
-	ImGui::Text(
-		"%s", statestr(i.e_time, i.e_paused, i.pl_pos, i.pl_count).c_str());
-
-	if (ImGui::Button("Accept"))
-		mpvh.explore_accept();
-	ImGui::SameLine();
-	if (ImGui::Button("Cancel"))
-		mpvh.explore_cancel();
-
-	ImGui::End();
-}
-
-void dbgwin(SDL_Window *win, Player &mpvh)
-{
-	PlayerInfo i = mpvh.get_info();
-
-	static bool display = true;
-	ImGui::Begin("Debug", &display, 0);
-
-	if (ImGui::Button("<")) {
-		auto info = mpvh.get_info();
-		mpvh.set_pl_pos(info.pl_pos - 1);
-		info = mpvh.get_info();
-		send_control(info.pl_pos, info.c_time, info.c_paused);
-	}
-	ImGui::SameLine();
-	ImGui::Text("T: %ld/%ld", i.pl_pos + 1, i.pl_count);
-	ImGui::SameLine();
-	if (ImGui::Button(">")) {
-		auto info = mpvh.get_info();
-		mpvh.set_pl_pos(info.pl_pos + 1);
-		info = mpvh.get_info();
-		send_control(info.pl_pos, info.c_time, info.c_paused);
-	}
-
-	ImGui::Text("%s", i.title.c_str());
-
-	if (ImGui::Button("Play")) {
-		mpvh.pause(false);
-		auto info = mpvh.get_info();
-		send_control(info.pl_pos, info.c_time, info.c_paused);
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Pause")) {
-		mpvh.pause(true);
-		auto info = mpvh.get_info();
-		send_control(info.pl_pos, info.c_time, info.c_paused);
-	}
-
-	ImGui::Text(
-		"%s", statestr(i.c_time, i.c_paused, i.pl_pos, i.pl_count).c_str());
-
-	if (!i.exploring)
-		ImGui::Text("Delay: %.f", i.delay);
-
-	if (ImGui::Button("<"))
-		mpvh.set_sub(i.sub_pos - 1);
-	ImGui::SameLine();
-	ImGui::Text("S: %ld/%ld", i.sub_pos, i.sub_count);
-	ImGui::SameLine();
-	if (ImGui::Button(">"))
-		mpvh.set_sub(i.sub_pos + 1);
-
-	if (ImGui::Button("<"))
-		mpvh.set_audio(i.audio_pos - 1);
-	ImGui::SameLine();
-	ImGui::Text("A: %ld/%ld", i.audio_pos, i.audio_count);
-	ImGui::SameLine();
-	if (ImGui::Button(">"))
-		mpvh.set_audio(i.audio_pos + 1);
-
-	if (ImGui::Button("Explore"))
-		mpvh.explore();
-	ImGui::SameLine();
-	ImGui::Text("Exploring: %d", i.exploring);
-	if (i.exploring)
-		explorewin(mpvh);
-
-	if (ImGui::Button("Mute"))
-		mpvh.toggle_mute();
-	ImGui::SameLine();
-	ImGui::Text("Muted: %d", i.muted);
-
-	if (ImGui::Button("Fullscreen"))
-		toggle_fullscreen(win);
-
-	ImGui::End();
-}
-
 bool handle_sdl_events(SDL_Window *win, Chat &c, int &mouse_x, int &mouse_y, bool &click)
 {
 	bool redraw = false;
@@ -709,12 +581,10 @@ int main(int argc, char **argv)
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame(window);
 		ImGui::NewFrame();
-		//inputwin();
 
 		Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
 
 		ui(window, mpvh, l, chat, mouse_x, mouse_y, click);
-		//dbgwin(window, mpvh);
 		glViewport(0, 0, w, h);
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
