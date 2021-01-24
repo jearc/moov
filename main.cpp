@@ -253,15 +253,19 @@ bool button(ImRect rect, ImVec2 padding, ImFont *font, const char *label)
 
 void text(ImRect rect, ImVec2 padding, ImFont *font, const char *text)
 {
+	static int i = 0;
+	char name[100] = {};
+	snprintf(name, 100, "text%d", i++);
+
 	ImGui::PushFont(font);
 	ImGui::SetCursorPos(rect.pos + padding);
-	ImGui::BeginChild(text, rect.size - 2 * padding);
+	ImGui::BeginChild(name, rect.size - 2 * padding);
 	ImGui::Text("%s", text);
 	ImGui::EndChild();
 	ImGui::PopFont();
 }
 
-void ui(SDL_Window *sdl_win, Player &p, Layout &l)
+void ui(SDL_Window *sdl_win, Player &p, Layout &l, int mouse_x, int mouse_y, bool click)
 {
 	auto info = p.get_info();
 
@@ -279,7 +283,7 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l)
 
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
-	draw_list->AddRectFilled(l.infobar.pos, l.infobar.pos + l.infobar.size,
+	draw_list->AddRectFilled(l.ui_bg.pos, l.ui_bg.pos + l.ui_bg.size,
 		0xbb000000, 0.0, ImDrawCornerFlags_None);
 
 	auto pp_but_str = info.c_paused ? PLAY_ICON : PAUSE_ICON;
@@ -289,7 +293,25 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l)
 		send_control(info.pl_pos, info.c_time, info.c_paused);
 	}
 
-	text(l.time, l.major_padding, text_font, sec_to_timestr(info.c_time).c_str());
+	std::string time_str = sec_to_timestr(info.c_time);
+	if (!info.exploring)
+	{
+		int delay = std::round(abs(info.delay));
+		char unit = 's';
+		if (delay >= 60) {
+			unit = 'm';
+			delay /= 60;
+		}
+		if (delay >= 60) {
+			unit = 'h';
+			delay /= 60;
+		}
+		char delay_indicator[5];
+		delay = std::min(99, delay);
+		snprintf(delay_indicator, 5, " %c%d%c", info.delay < 0 ? '+' : '-', delay, unit);
+		time_str += delay_indicator;
+	}
+	text(l.time, l.major_padding, text_font, time_str.c_str());
 
 	if (button(l.prev_but, l.major_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
 		p.set_pl_pos(info.pl_pos - 1);
@@ -334,6 +356,71 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l)
 	auto fullscr_str = is_fullscreen(sdl_win) ? UNFULLSCREEN_ICON : FULLSCREEN_ICON;
 	if (button(l.fullscr_but, l.major_padding, icon_font, fullscr_str))
 		toggle_fullscreen(sdl_win);
+
+	draw_list->AddRectFilled(
+		l.seek_bar.pos,
+		l.seek_bar.pos + l.seek_bar.size,
+		decode_color("#88888888")
+	);
+	float seek_fill_bar_w = l.seek_bar.size.x / 4;
+	if (info.exploring) {
+		float time_delta = info.e_time - info.c_time;
+		seek_fill_bar_w += (time_delta / 40.0 / 60.0) * l.seek_bar.size.x;
+	}
+	draw_list->AddRectFilled(
+		l.seek_bar.pos,
+		l.seek_bar.pos + ImVec2(seek_fill_bar_w, l.seek_bar.size.y),
+		decode_color("#ffaa00")
+	);
+
+	auto mouse_rel_seek = ImVec2(
+		mouse_x - l.seek_bar.pos.x,
+		mouse_y - l.seek_bar.pos.y
+	);
+	if (0 <= mouse_rel_seek.x && mouse_rel_seek.x <= l.seek_bar.size.x &&
+		  0 <= mouse_rel_seek.y && mouse_rel_seek.y <= l.seek_bar.size.y)
+	{
+		int zero_point = l.seek_bar.size.x / 4;
+		int point = mouse_rel_seek.x - zero_point;
+
+		float time = point / l.seek_bar.size.x * 40 * 60;
+		std::string indicator_text;
+		if (time < 0) {
+			indicator_text = "-" + sec_to_timestr(-std::round(time));
+		} else {
+			indicator_text = "+" + sec_to_timestr(std::round(time));
+		}
+		ImVec2 indicator_size = calc_text_size(text_font, ImVec2(0, 0), indicator_text.c_str());
+
+		auto indicator_pos = ImVec2(mouse_x, l.seek_bar.pos.y);
+
+		int right_space = l.seek_bar.size.x - mouse_rel_seek.x;
+		if (point > 0)
+			indicator_pos.x = mouse_x - indicator_size.x;			
+
+		draw_list->AddText(
+			indicator_pos,
+			decode_color("#ffffff"),
+			indicator_text.c_str()
+		);
+
+		if (click) {
+			if (!info.exploring)
+				p.explore();
+			p.set_explore_time(info.c_time + time);
+		}
+	}
+
+	if (info.exploring)
+	{
+		text(l.explore_status, l.major_padding, text_font, sec_to_timestr(info.e_time).c_str());
+
+		if (button(l.cancel_but, l.major_padding, text_font, "Cancel"))
+			p.explore_cancel();
+
+		if (button(l.accept_but, l.major_padding, text_font, "Accept"))
+			p.explore_accept();
+	}
 
 	ImGui::End();
 	ImGui::PopStyleVar(3);

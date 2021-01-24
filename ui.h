@@ -22,8 +22,10 @@ struct Layout {
 	ImVec2 minor_padding;
 
 	ImRect master_win;
+
+	ImRect ui_bg;
+
 	ImRect infobar;
-	float separator;
 
 	ImRect pp_but;
 	ImRect time;
@@ -41,6 +43,13 @@ struct Layout {
 	ImRect audio_next_but;
 	ImRect mute_but;
 	ImRect fullscr_but;
+
+	ImRect explore_bar;
+
+	ImRect explore_status;
+	ImRect seek_bar;
+	ImRect cancel_but;
+	ImRect accept_but;
 };
 
 Layout calculate_layout(int text_height, int win_w, int win_h,
