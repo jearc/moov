@@ -9,6 +9,9 @@
 #include <iostream>
 #include <mutex>
 #include <queue>
+#include <string_view>
+#include <charconv>
+#include <algorithm>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
@@ -21,6 +24,8 @@ using json = nlohmann::json;
 
 ImFont *text_font;
 ImFont *icon_font;
+
+bool focus_chat = false;
 
 void *get_proc_address_mpv(void *fn_ctx, const char *name)
 {
@@ -44,15 +49,21 @@ void toggle_fullscreen(SDL_Window *win)
 	SDL_ShowCursor(SDL_ENABLE);
 }
 
-void chatbox(std::vector<Message> &cl, bool scroll_to_bottom)
+void chatbox(Chat &c)
 {
 	auto chat_window_name = "chat_window";
 	auto chat_window_flags =
 		ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
 		ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoNav;
-	auto chat_window_size = ImVec2(300, 300);
-	auto chat_window_pos = ImVec2(300, 300);
+		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMouseInputs;
+	auto chat_window_size = ImVec2(300, 400);
+	auto chat_window_pos = ImVec2(300, 100);
+
+	auto chat_log_size = ImVec2(300, 260);
+	auto chat_log_pos = chat_window_pos;
+
+	auto chat_input_size = ImVec2(300, 20);
+	auto chat_input_pos = ImVec2(chat_window_pos.x, chat_window_pos.y + chat_log_size.y);
 
 	ImGui::SetNextWindowSize(chat_window_size);
 	ImGui::SetNextWindowPos(chat_window_pos);
@@ -63,15 +74,70 @@ void chatbox(std::vector<Message> &cl, bool scroll_to_bottom)
 	ImGui::Begin(chat_window_name, &display, chat_window_flags);
 
 	auto draw_list = ImGui::GetWindowDrawList();
-	ImVec2 message_pos = chat_window_pos;
-	for (auto &msg : cl) {
-		auto text_size = ImGui::CalcTextSize(msg.text.c_str());
-		ImVec2 rect_p_max(
-			message_pos.x + text_size.x, message_pos.y + text_size.y);
-		draw_list->AddRectFilled(message_pos, rect_p_max, msg.bg);
-		draw_list->AddText(message_pos, msg.fg, msg.text.c_str());
-		message_pos.y += text_size.y;
+	ImVec2 message_pos = chat_log_pos;
+	message_pos.y = chat_log_pos.y + chat_log_size.y;
+	auto messages = c.messages();
+	for (auto it = messages.rbegin(); it != messages.rend(); it++)
+	{
+		auto &msg = *it;
+
+		double opacity;
+		{
+			double K = 5.0;
+			double F = 3.0;
+			auto m = msg.time;
+			auto e = c.get_last_end_scroll_time();
+			auto n = std::chrono::steady_clock::now();
+			double x = std::chrono::duration<double>(n-std::max(m, e)).count();
+			opacity = 1.0 - std::min(std::max(0.0, (x-K)/F), 1.0);
+		}
+
+		if (opacity == 0)
+			break;
+
+		auto text_size = ImGui::CalcTextSize(msg.text.c_str(), nullptr, false, chat_log_size.x);
+		message_pos.y -= text_size.y;
+		if (message_pos.y < chat_log_pos.y)
+			break;
+
+		auto fade_color = [](uint32_t col, double factor) {
+			uint32_t alpha = col >> 24;
+			uint32_t scaled_alpha = std::round(factor * alpha);
+			return (col & 0x00FFFFFF) | (scaled_alpha << 24);
+		};
+
+		uint32_t fg = fade_color(msg.fg, opacity*opacity);
+		uint32_t bg = fade_color(msg.bg, opacity);
+
+		ImVec2 rect_p_max(message_pos.x + text_size.x, message_pos.y + text_size.y);
+		draw_list->AddRectFilled(message_pos, rect_p_max, bg);
+		draw_list->AddText(nullptr, 0.0f, message_pos, fg, msg.text.c_str(), msg.text.c_str() + msg.text.size(), chat_log_size.x, nullptr);
 	}
+
+	static ImVec4 input_bg = ImVec4(0, 0, 0, 0);
+
+	static std::array<char, 1024> buf;
+	ImGui::SetNextItemWidth(chat_input_size.x);
+	ImGui::SetCursorPos(ImVec2(0, 260));
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, input_bg);
+	if (ImGui::InputText("", buf.data(), 1024, ImGuiInputTextFlags_EnterReturnsTrue))
+	{
+		json j;
+		j["type"] = "user_input";
+		j["text"] = buf.data();
+		std::cout << j << std::endl;
+		std::fill(buf.begin(), buf.end(), 0);
+		focus_chat = false;
+		input_bg = ImVec4(0, 0, 0, 0);
+	}
+	ImGui::PopStyleColor();
+	if (focus_chat)
+	{
+		ImGui::SetKeyboardFocusHere(-1);
+		focus_chat = false;
+		input_bg = ImVec4(0.5, 0.5, 0.5, 0.5);
+	}
+
 	ImGui::End();
 	ImGui::PopStyleVar(2);
 }
@@ -92,13 +158,37 @@ void read_input(std::mutex &m, std::queue<json> &q)
 	while (std::getline(std::cin, l))
 	{
 		std::lock_guard<std::mutex> g(m);
-		q.push(json::parse(l));
+		try {
+			q.push(json::parse(l));
+		} catch (std::exception &e) {
+			std::cerr << e.what() << std::endl;	
+		}
 	}
 }
 
-void handle_instruction(Player &p, std::vector<Message> &l, json &j)
+uint32_t decode_color(std::string_view string)
 {
-	auto &type = j.at("type");
+	if (!(string.length() == 7 || string.length() == 9) || string[0] != '#')
+		return 0;
+
+	uint8_t channels[4];
+	channels[3] = 0xFF;
+
+	for (int i = 1; i+1 < string.length(); i += 2)
+	{
+		std::from_chars(&string[i], &string[i]+2, channels[(i-1)/2], 16);
+	}
+
+	return *(uint32_t *)channels;
+}
+
+void handle_instruction(Player &p, Chat &c, json &j)
+{
+	auto type_it = j.find("type");
+	if (type_it == j.end())
+		return;
+
+	auto &type = *type_it;
 	if (type == "pause")
 	{
 		bool paused = j.at("paused");
@@ -111,10 +201,15 @@ void handle_instruction(Player &p, std::vector<Message> &l, json &j)
 	}
 	else if (type == "message")
 	{
-		uint32_t bg = j.at("bg_color");
-		uint32_t fg = j.at("fg_color");
+		std::string bg_str = j.at("bg_color");
+		std::string fg_str = j.at("fg_color");
 		std::string msg = j.at("message");
-		l.push_back({ msg, fg, bg });
+		c.add_message({
+			msg,
+			std::chrono::steady_clock::now(),
+			decode_color(fg_str),
+			decode_color(bg_str)
+		});
 	}
 	else if (type == "add_file")
 	{
@@ -372,24 +467,41 @@ void dbgwin(SDL_Window *win, Player &mpvh)
 	ImGui::End();
 }
 
-bool handle_sdl_events(SDL_Window *win)
+bool handle_sdl_events(SDL_Window *win, Chat &c, int &mouse_x, int &mouse_y, bool &click)
 {
 	bool redraw = false;
+	click = false;
+
+	SDL_GetMouseState(&mouse_x, &mouse_y);
 
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
 		switch (e.type) {
 		case SDL_QUIT:
 			exit(EXIT_SUCCESS);
+		case SDL_MOUSEBUTTONDOWN:
+			if (e.button.button == SDL_BUTTON_LEFT)
+				click = true;
+			ImGui_ImplSDL2_ProcessEvent(&e);
+			break;
 		case SDL_KEYDOWN:
 			switch (e.key.keysym.sym) {
 			case SDLK_F11:
 				toggle_fullscreen(win);
 				break;
+			case SDLK_RETURN:
+				focus_chat = true;
+				ImGui_ImplSDL2_ProcessEvent(&e);
+				break;
 			default:
 				ImGui_ImplSDL2_ProcessEvent(&e);
 			}
 			break;
+		case SDL_MOUSEWHEEL:
+			if (e.wheel.y < 0)
+				c.scroll_down();
+			else if (e.wheel.y > 0)
+				c.scroll_up();
 		case SDL_WINDOWEVENT:
 			if (e.window.event == SDL_WINDOWEVENT_EXPOSED)
 				redraw = true;
@@ -460,7 +572,7 @@ int main(int argc, char **argv)
 
 	bool mpv_redraw = false;
 
-	std::vector<Message> cl;
+	Chat chat;
 	std::queue<json> input_queue;
 	std::mutex input_lock;
 
@@ -491,7 +603,7 @@ int main(int argc, char **argv)
 			}
 			if (!queue_empty)
 			{
-				handle_instruction(mpvh, cl, j);
+				handle_instruction(mpvh, chat, j);
 			}
 		}
 
@@ -503,7 +615,10 @@ int main(int argc, char **argv)
 		if (SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS)
 			redraw = true;
 
-		if (handle_sdl_events(window))
+		int mouse_x;
+		int mouse_y;
+		bool click;
+		if (handle_sdl_events(window, chat, mouse_x, mouse_y, click))
 			redraw = true;
 		mpvh.update();
 
@@ -530,12 +645,12 @@ int main(int argc, char **argv)
 		ImGui_ImplSDL2_NewFrame(window);
 		ImGui::NewFrame();
 		//inputwin();
-		chatbox(cl, false);
-		//dbgwin(window, mpvh);
+		chatbox(chat);
 
 		Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
 
-		ui(window, mpvh, l);
+		ui(window, mpvh, l, mouse_x, mouse_y, click);
+		//dbgwin(window, mpvh);
 		glViewport(0, 0, w, h);
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

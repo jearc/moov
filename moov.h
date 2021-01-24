@@ -1,9 +1,15 @@
+#pragma once
+
 #include <string>
+#include <vector>
+#include <span>
+#include <chrono>
+#include <optional>
 #include <mpv/client.h>
 #include <mpv/render.h>
 #include <mpv/render_gl.h>
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
+using time_point = std::chrono::time_point<std::chrono::steady_clock>;
 
 enum Command {
 	OUT_CONTROL = 10,
@@ -20,7 +26,22 @@ enum Command {
 
 struct Message {
 	std::string text;
+	time_point time;
 	unsigned fg, bg;
+};
+
+struct Chat {
+
+	void add_message(const Message &m);
+	std::span<Message> messages();
+	void scroll_up();
+	void scroll_down();
+	time_point get_last_end_scroll_time();
+
+private:
+	std::vector<Message> log;
+	size_t cursor = 0;
+	time_point last_end_scroll_time;
 };
 
 struct PlayerInfo {
