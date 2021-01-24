@@ -16,6 +16,11 @@ ImVec2 operator*(int a, ImVec2 b)
 	return ImVec2(a * b.x, a * b.y);
 }
 
+bool operator==(const ImVec2 &a, const ImVec2 &b)
+{
+	return a.x == b.x && a.y == b.y;
+}
+
 ImVec2 calc_text_size(ImFont *font, ImVec2 padding, const char *text)
 {
 	ImGui::PushFont(font);

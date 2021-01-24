@@ -1,5 +1,7 @@
 #pragma once
 
+#include "moov.h"
+
 #define PLAY_ICON ((const char *)u8"\ue037")
 #define PAUSE_ICON ((const char *)u8"\ue034")
 #define PLAYLIST_PREVIOUS_ICON ((const char *)u8"\ue045")
@@ -12,10 +14,6 @@
 #define UNMUTED_ICON ((const char *)u8"\ue050")
 #define FULLSCREEN_ICON ((const char *)u8"\ue5d0")
 #define UNFULLSCREEN_ICON ((const char *)u8"\ue5d1")
-
-struct ImRect {
-	ImVec2 pos, size;
-};
 
 struct Layout {
 	ImVec2 major_padding;
@@ -61,4 +59,5 @@ Layout calculate_layout(int text_height, int win_w, int win_h,
 ImVec2 operator+(ImVec2 a, ImVec2 b);
 ImVec2 operator-(ImVec2 a, ImVec2 b);
 ImVec2 operator*(int a, ImVec2 b);
+bool operator==(const ImVec2 &a, const ImVec2 &b);
 ImVec2 calc_text_size(ImFont *font, ImVec2 padding, const char *string);

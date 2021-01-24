@@ -8,6 +8,7 @@
 #include <mpv/client.h>
 #include <mpv/render.h>
 #include <mpv/render_gl.h>
+#include "imgui/imgui.h"
 
 using time_point = std::chrono::time_point<std::chrono::steady_clock>;
 
@@ -93,6 +94,33 @@ private:
 
 	int64_t audio_count, sub_count;
 	std::string title;
+};
+
+struct ImRect {
+	ImVec2 pos, size;
+};
+
+struct Mouse_State {
+	ImVec2 pos, global_pos;
+};
+
+struct Frame_Input {
+	Mouse_State mouse_state;
+	bool left_click = false;
+	bool redraw = false;
+	bool ret = false;
+	bool scroll_up = false;
+	bool scroll_down = false;
+	bool fullscreen = false;
+};
+
+struct UI_State {
+	bool fullscreen = false;
+	ImRect window_geometry;
+	bool focus_chat = false;
+	std::optional<time_point> initial_fullscreen_click;
+	std::optional<Mouse_State> left_down_on_nothing;
+	bool left_down_on_something = false;
 };
 
 std::string sec_to_timestr(unsigned int seconds);

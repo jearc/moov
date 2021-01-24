@@ -25,8 +25,6 @@ using json = nlohmann::json;
 ImFont *text_font;
 ImFont *icon_font;
 
-bool focus_chat = false;
-
 void *get_proc_address_mpv(void *fn_ctx, const char *name)
 {
 	return SDL_GL_GetProcAddress(name);
@@ -37,16 +35,32 @@ void on_mpv_redraw(void *mpv_redraw)
 	//*(bool *)mpv_redraw = true;
 }
 
-bool is_fullscreen(SDL_Window *win)
+void toggle_fullscreen(SDL_Window *win, UI_State &ui)
 {
-	return SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN;
+	if (!ui.fullscreen) {
+		int x, y, w, h;
+		SDL_GetWindowSize(win, &w, &h);
+		SDL_GetWindowPosition(win, &x, &y);
+		ui.window_geometry.pos = ImVec2(x, y);
+		ui.window_geometry.size = ImVec2(w, h);
+
+		SDL_SetWindowBordered(win, SDL_FALSE);
+		SDL_SetWindowSize(win, 2560, 1440);
+		SDL_SetWindowPosition(win, 0, 0);
+	} else {
+		SDL_SetWindowBordered(win, SDL_TRUE);
+		SDL_SetWindowSize(win, ui.window_geometry.size.x, ui.window_geometry.size.y);
+		SDL_SetWindowPosition(win, ui.window_geometry.pos.x, ui.window_geometry.pos.y);
+	}
+	SDL_ShowCursor(SDL_ENABLE);
+	ui.fullscreen = !ui.fullscreen;
 }
 
-void toggle_fullscreen(SDL_Window *win)
+void move_window(SDL_Window *win, int dx, int dy)
 {
-	SDL_SetWindowFullscreen(
-		win, is_fullscreen(win) ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
-	SDL_ShowCursor(SDL_ENABLE);
+	int x, y;
+	SDL_GetWindowPosition(win, &x, &y);
+	SDL_SetWindowPosition(win, x + dx, y + dy);
 }
 
 void send_control(int64_t pos, double time, bool paused)
@@ -172,7 +186,7 @@ void text(ImRect rect, ImVec2 padding, ImFont *font, const char *text)
 	ImGui::PopFont();
 }
 
-void chatbox(Chat &c, Layout &l)
+void chatbox(Chat &c, UI_State &ui, Layout &l)
 {
 	auto draw_list = ImGui::GetWindowDrawList();
 
@@ -229,19 +243,19 @@ void chatbox(Chat &c, Layout &l)
 		j["text"] = buf.data();
 		std::cout << j << std::endl;
 		std::fill(buf.begin(), buf.end(), 0);
-		focus_chat = false;
+		ui.focus_chat = false;
 		input_bg = ImVec4(0, 0, 0, 0);
 	}
 	ImGui::PopStyleColor();
-	if (focus_chat)
+	if (ui.focus_chat)
 	{
 		ImGui::SetKeyboardFocusHere(-1);
-		focus_chat = false;
+		ui.focus_chat = false;
 		input_bg = ImVec4(0.5, 0.5, 0.5, 0.5);
 	}
 }
 
-void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mouse_y, bool click)
+void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, Layout &l, Chat &c)
 {
 	auto info = p.get_info();
 
@@ -329,9 +343,9 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mou
 	if (button(l.mute_but, l.major_padding, icon_font, mute_str))
 		p.toggle_mute();
 
-	auto fullscr_str = is_fullscreen(sdl_win) ? UNFULLSCREEN_ICON : FULLSCREEN_ICON;
+	auto fullscr_str = ui.fullscreen ? UNFULLSCREEN_ICON : FULLSCREEN_ICON;
 	if (button(l.fullscr_but, l.major_padding, icon_font, fullscr_str))
-		toggle_fullscreen(sdl_win);
+		toggle_fullscreen(sdl_win, ui);
 
 	draw_list->AddRectFilled(
 		l.seek_bar.pos,
@@ -349,10 +363,7 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mou
 		info.exploring ? decode_color("#ffaa00") : decode_color("#ffaa0088")
 	);
 
-	auto mouse_rel_seek = ImVec2(
-		mouse_x - l.seek_bar.pos.x,
-		mouse_y - l.seek_bar.pos.y
-	);
+	auto mouse_rel_seek = in.mouse_state.pos - l.seek_bar.pos;
 	if (0 <= mouse_rel_seek.x && mouse_rel_seek.x <= l.seek_bar.size.x &&
 		  0 <= mouse_rel_seek.y && mouse_rel_seek.y <= l.seek_bar.size.y)
 	{
@@ -368,11 +379,11 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mou
 		}
 		ImVec2 indicator_size = calc_text_size(text_font, ImVec2(0, 0), indicator_text.c_str());
 
-		auto indicator_pos = ImVec2(mouse_x, l.seek_bar.pos.y);
+		auto indicator_pos = ImVec2(in.mouse_state.pos.x, l.seek_bar.pos.y);
 
 		int right_space = l.seek_bar.size.x - mouse_rel_seek.x;
 		if (point > 0)
-			indicator_pos.x = mouse_x - indicator_size.x;			
+			indicator_pos.x = in.mouse_state.pos.x - indicator_size.x;			
 
 		draw_list->AddText(
 			indicator_pos,
@@ -380,7 +391,7 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mou
 			indicator_text.c_str()
 		);
 
-		if (click) {
+		if (in.left_click) {
 			if (!info.exploring)
 				p.explore();
 			p.set_explore_time(info.c_time + time);
@@ -398,36 +409,73 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mou
 			p.explore_accept();
 	}
 
-	chatbox(c, l);
+	if (ui.fullscreen) {
+		if (in.ret)
+			ui.focus_chat = true;
+		chatbox(c, ui, l);
+	}
+
+	auto intersects_rect = [](ImRect &r, ImVec2 &v) {
+		return r.pos.x <= v.x && v.x <= r.pos.x + r.size.x &&
+			r.pos.y <= v.y && v.y <= r.pos.y + r.size.y;
+	};
+
+	bool mouse_on_nothing = !(intersects_rect(l.ui_bg, in.mouse_state.pos) || intersects_rect(l.chat_input, in.mouse_state.pos));
+
+	bool left_clicked = ui.left_down_on_nothing.has_value() && !in.left_click && ui.left_down_on_nothing->pos == in.mouse_state.pos
+		&& ui.left_down_on_nothing->global_pos == in.mouse_state.global_pos;
+
+	if (left_clicked) {
+		auto fullscreen_click = std::chrono::steady_clock::now();
+		auto doubleclick_timeout = std::chrono::duration<double>(0.5);
+		if (ui.initial_fullscreen_click.has_value() && fullscreen_click - ui.initial_fullscreen_click.value() < doubleclick_timeout) {
+			toggle_fullscreen(sdl_win, ui);
+			ui.initial_fullscreen_click.reset();
+		} else {
+			ui.initial_fullscreen_click = fullscreen_click;
+		}
+	}
+
+	if (ui.left_down_on_nothing.has_value() && ui.left_down_on_nothing->global_pos != in.mouse_state.global_pos) {
+		ImVec2 delta = in.mouse_state.global_pos - ui.left_down_on_nothing->global_pos;
+		move_window(sdl_win, delta.x, delta.y);
+	}
+
+	if (mouse_on_nothing && in.left_click && !ui.left_down_on_something)
+		ui.left_down_on_nothing = in.mouse_state;
+	else
+		ui.left_down_on_nothing.reset();
+
+	ui.left_down_on_something = in.left_click && (!mouse_on_nothing || ui.left_down_on_something);
 
 	ImGui::End();
 	ImGui::PopStyleVar(3);
 }
 
-bool handle_sdl_events(SDL_Window *win, Chat &c, int &mouse_x, int &mouse_y, bool &click)
+Frame_Input get_sdl_input(SDL_Window *win)
 {
-	bool redraw = false;
-	click = false;
+	Frame_Input in;
 
-	SDL_GetMouseState(&mouse_x, &mouse_y);
+	int mouse_x, mouse_y;
+	uint32_t button_state = SDL_GetMouseState(&mouse_x, &mouse_y);
+	in.mouse_state.pos = ImVec2(mouse_x, mouse_y);
+	in.left_click = button_state & SDL_BUTTON(SDL_BUTTON_LEFT);
+	SDL_GetGlobalMouseState(&mouse_x, &mouse_y);
+	in.mouse_state.global_pos = ImVec2(mouse_x, mouse_y);
 
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
 		switch (e.type) {
 		case SDL_QUIT:
 			exit(EXIT_SUCCESS);
-		case SDL_MOUSEBUTTONDOWN:
-			if (e.button.button == SDL_BUTTON_LEFT)
-				click = true;
-			ImGui_ImplSDL2_ProcessEvent(&e);
 			break;
 		case SDL_KEYDOWN:
 			switch (e.key.keysym.sym) {
 			case SDLK_F11:
-				toggle_fullscreen(win);
+				in.fullscreen = true;
 				break;
 			case SDLK_RETURN:
-				focus_chat = true;
+				in.ret = true;
 				ImGui_ImplSDL2_ProcessEvent(&e);
 				break;
 			default:
@@ -436,19 +484,19 @@ bool handle_sdl_events(SDL_Window *win, Chat &c, int &mouse_x, int &mouse_y, boo
 			break;
 		case SDL_MOUSEWHEEL:
 			if (e.wheel.y < 0)
-				c.scroll_down();
+				in.scroll_down = true;
 			else if (e.wheel.y > 0)
-				c.scroll_up();
+				in.scroll_up = true;
 		case SDL_WINDOWEVENT:
 			if (e.window.event == SDL_WINDOWEVENT_EXPOSED)
-				redraw = true;
+				in.redraw = true;
 			break;
 		default:
 			ImGui_ImplSDL2_ProcessEvent(&e);
 		}
 	}
 
-	return redraw;
+	return in;
 }
 
 SDL_Window *init_window(float font_size)
@@ -516,6 +564,8 @@ int main(int argc, char **argv)
 	auto input_thread = std::thread(read_input, std::ref(input_lock), std::ref(input_queue));
 	input_thread.detach();
 
+	UI_State ui;
+
 	int64_t t_last = 0, t_now = 0;
 	while (1) {
 		SDL_Delay(4);
@@ -552,12 +602,11 @@ int main(int argc, char **argv)
 		if (SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS)
 			redraw = true;
 
-		int mouse_x;
-		int mouse_y;
-		bool click;
-		if (handle_sdl_events(window, chat, mouse_x, mouse_y, click))
-			redraw = true;
+		Frame_Input input = get_sdl_input(window);
 		mpvh.update();
+
+		if (input.fullscreen)
+			toggle_fullscreen(window, ui);
 
 		//if (!redraw)
 		//	continue;
@@ -584,7 +633,7 @@ int main(int argc, char **argv)
 
 		Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
 
-		ui(window, mpvh, l, chat, mouse_x, mouse_y, click);
+		create_ui(window, ui, input, mpvh, l, chat);
 		glViewport(0, 0, w, h);
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
