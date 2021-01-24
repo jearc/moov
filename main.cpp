@@ -49,99 +49,6 @@ void toggle_fullscreen(SDL_Window *win)
 	SDL_ShowCursor(SDL_ENABLE);
 }
 
-void chatbox(Chat &c)
-{
-	auto chat_window_name = "chat_window";
-	auto chat_window_flags =
-		ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMouseInputs;
-	auto chat_window_size = ImVec2(300, 400);
-	auto chat_window_pos = ImVec2(300, 100);
-
-	auto chat_log_size = ImVec2(300, 260);
-	auto chat_log_pos = chat_window_pos;
-
-	auto chat_input_size = ImVec2(300, 20);
-	auto chat_input_pos = ImVec2(chat_window_pos.x, chat_window_pos.y + chat_log_size.y);
-
-	ImGui::SetNextWindowSize(chat_window_size);
-	ImGui::SetNextWindowPos(chat_window_pos);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-
-	bool display = true;
-	ImGui::Begin(chat_window_name, &display, chat_window_flags);
-
-	auto draw_list = ImGui::GetWindowDrawList();
-	ImVec2 message_pos = chat_log_pos;
-	message_pos.y = chat_log_pos.y + chat_log_size.y;
-	auto messages = c.messages();
-	for (auto it = messages.rbegin(); it != messages.rend(); it++)
-	{
-		auto &msg = *it;
-
-		double opacity;
-		{
-			double K = 5.0;
-			double F = 3.0;
-			auto m = msg.time;
-			auto e = c.get_last_end_scroll_time();
-			auto n = std::chrono::steady_clock::now();
-			double x = std::chrono::duration<double>(n-std::max(m, e)).count();
-			opacity = 1.0 - std::min(std::max(0.0, (x-K)/F), 1.0);
-		}
-
-		if (opacity == 0)
-			break;
-
-		auto text_size = ImGui::CalcTextSize(msg.text.c_str(), nullptr, false, chat_log_size.x);
-		message_pos.y -= text_size.y;
-		if (message_pos.y < chat_log_pos.y)
-			break;
-
-		auto fade_color = [](uint32_t col, double factor) {
-			uint32_t alpha = col >> 24;
-			uint32_t scaled_alpha = std::round(factor * alpha);
-			return (col & 0x00FFFFFF) | (scaled_alpha << 24);
-		};
-
-		uint32_t fg = fade_color(msg.fg, opacity*opacity);
-		uint32_t bg = fade_color(msg.bg, opacity);
-
-		ImVec2 rect_p_max(message_pos.x + text_size.x, message_pos.y + text_size.y);
-		draw_list->AddRectFilled(message_pos, rect_p_max, bg);
-		draw_list->AddText(nullptr, 0.0f, message_pos, fg, msg.text.c_str(), msg.text.c_str() + msg.text.size(), chat_log_size.x, nullptr);
-	}
-
-	static ImVec4 input_bg = ImVec4(0, 0, 0, 0);
-
-	static std::array<char, 1024> buf;
-	ImGui::SetNextItemWidth(chat_input_size.x);
-	ImGui::SetCursorPos(ImVec2(0, 260));
-	ImGui::PushStyleColor(ImGuiCol_FrameBg, input_bg);
-	if (ImGui::InputText("", buf.data(), 1024, ImGuiInputTextFlags_EnterReturnsTrue))
-	{
-		json j;
-		j["type"] = "user_input";
-		j["text"] = buf.data();
-		std::cout << j << std::endl;
-		std::fill(buf.begin(), buf.end(), 0);
-		focus_chat = false;
-		input_bg = ImVec4(0, 0, 0, 0);
-	}
-	ImGui::PopStyleColor();
-	if (focus_chat)
-	{
-		ImGui::SetKeyboardFocusHere(-1);
-		focus_chat = false;
-		input_bg = ImVec4(0.5, 0.5, 0.5, 0.5);
-	}
-
-	ImGui::End();
-	ImGui::PopStyleVar(2);
-}
-
 void send_control(int64_t pos, double time, bool paused)
 {
 	json res;
@@ -265,7 +172,76 @@ void text(ImRect rect, ImVec2 padding, ImFont *font, const char *text)
 	ImGui::PopFont();
 }
 
-void ui(SDL_Window *sdl_win, Player &p, Layout &l, int mouse_x, int mouse_y, bool click)
+void chatbox(Chat &c, Layout &l)
+{
+	auto draw_list = ImGui::GetWindowDrawList();
+
+	ImVec2 message_pos = l.chat_log.pos;
+	message_pos.y = l.chat_log.pos.y + l.chat_log.size.y;
+	auto messages = c.messages();
+	for (auto it = messages.rbegin(); it != messages.rend(); it++)
+	{
+		auto &msg = *it;
+
+		double opacity;
+		{
+			double K = 5.0;
+			double F = 3.0;
+			auto m = msg.time;
+			auto e = c.get_last_end_scroll_time();
+			auto n = std::chrono::steady_clock::now();
+			double x = std::chrono::duration<double>(n-std::max(m, e)).count();
+			opacity = 1.0 - std::min(std::max(0.0, (x-K)/F), 1.0);
+		}
+
+		if (opacity == 0)
+			break;
+
+		auto text_size = ImGui::CalcTextSize(msg.text.c_str(), nullptr, false, l.chat_log.size.x);
+		message_pos.y -= text_size.y;
+		if (message_pos.y < l.chat_log.pos.y)
+			break;
+
+		auto fade_color = [](uint32_t col, double factor) {
+			uint32_t alpha = col >> 24;
+			uint32_t scaled_alpha = std::round(factor * alpha);
+			return (col & 0x00FFFFFF) | (scaled_alpha << 24);
+		};
+
+		uint32_t fg = fade_color(msg.fg, opacity*opacity);
+		uint32_t bg = fade_color(msg.bg, opacity);
+
+		ImVec2 rect_p_max(message_pos.x + text_size.x, message_pos.y + text_size.y);
+		draw_list->AddRectFilled(message_pos, rect_p_max, bg);
+		draw_list->AddText(nullptr, 0.0f, message_pos, fg, msg.text.c_str(), msg.text.c_str() + msg.text.size(), l.chat_log.size.x, nullptr);
+	}
+
+	static ImVec4 input_bg = ImVec4(0, 0, 0, 0);
+
+	static std::array<char, 1024> buf;
+	ImGui::SetNextItemWidth(l.chat_input.size.x);
+	ImGui::SetCursorPos(l.chat_input.pos);
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, input_bg);
+	if (ImGui::InputText("", buf.data(), 1024, ImGuiInputTextFlags_EnterReturnsTrue))
+	{
+		json j;
+		j["type"] = "user_input";
+		j["text"] = buf.data();
+		std::cout << j << std::endl;
+		std::fill(buf.begin(), buf.end(), 0);
+		focus_chat = false;
+		input_bg = ImVec4(0, 0, 0, 0);
+	}
+	ImGui::PopStyleColor();
+	if (focus_chat)
+	{
+		ImGui::SetKeyboardFocusHere(-1);
+		focus_chat = false;
+		input_bg = ImVec4(0.5, 0.5, 0.5, 0.5);
+	}
+}
+
+void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mouse_y, bool click)
 {
 	auto info = p.get_info();
 
@@ -421,6 +397,8 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l, int mouse_x, int mouse_y, boo
 		if (button(l.accept_but, l.major_padding, text_font, "Accept"))
 			p.explore_accept();
 	}
+
+	chatbox(c, l);
 
 	ImGui::End();
 	ImGui::PopStyleVar(3);
@@ -732,11 +710,10 @@ int main(int argc, char **argv)
 		ImGui_ImplSDL2_NewFrame(window);
 		ImGui::NewFrame();
 		//inputwin();
-		chatbox(chat);
 
 		Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
 
-		ui(window, mpvh, l, mouse_x, mouse_y, click);
+		ui(window, mpvh, l, chat, mouse_x, mouse_y, click);
 		//dbgwin(window, mpvh);
 		glViewport(0, 0, w, h);
 		ImGui::Render();

@@ -50,6 +50,10 @@ struct Layout {
 	ImRect seek_bar;
 	ImRect cancel_but;
 	ImRect accept_but;
+
+	ImRect chat_area;
+	ImRect chat_log;
+	ImRect chat_input;
 };
 
 Layout calculate_layout(int text_height, int win_w, int win_h,

@@ -119,5 +119,14 @@ Layout calculate_layout(
 		l.infobar.size.y + l.infobar.pos.y - l.seek_bar.pos.y
 	);
 
+	l.chat_area.pos = ImVec2(win_w * 0.2, win_h * 0.25);
+	l.chat_area.size = ImVec2(win_w * 0.3, win_h * 0.5);
+
+	l.chat_input.size = ImVec2(l.chat_area.size.x, text_height + 2 * l.major_padding.y);
+	l.chat_input.pos = ImVec2(l.chat_area.pos.x, l.chat_area.pos.y + l.chat_area.size.y - l.chat_input.size.y);
+
+	l.chat_log.pos = l.chat_area.pos;
+	l.chat_log.size = ImVec2(l.chat_area.size.x, l.chat_area.size.y - l.chat_input.size.y - separator);
+
 	return l;
 }
