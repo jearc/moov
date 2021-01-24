@@ -1,17 +1,17 @@
 #pragma once
 
-#define PLAY_ICON u8"\ue037"
-#define PAUSE_ICON u8"\ue034"
-#define PLAYLIST_PREVIOUS_ICON u8"\ue045"
-#define PLAYLIST_NEXT_ICON u8"\ue044"
-#define LEFT_ICON u8"\ue408"
-#define RIGHT_ICON u8"\ue409"
-#define AUDIO_ICON u8"\ue0ca"
-#define SUBTITLE_ICON u8"\ue048"
-#define MUTED_ICON u8"\ue04e"
-#define UNMUTED_ICON u8"\ue050"
-#define FULLSCREEN_ICON u8"\ue5d0"
-#define UNFULLSCREEN_ICON u8"\ue5d1"
+#define PLAY_ICON ((const char *)u8"\ue037")
+#define PAUSE_ICON ((const char *)u8"\ue034")
+#define PLAYLIST_PREVIOUS_ICON ((const char *)u8"\ue045")
+#define PLAYLIST_NEXT_ICON ((const char *)u8"\ue044")
+#define LEFT_ICON ((const char *)u8"\ue408")
+#define RIGHT_ICON ((const char *)u8"\ue409")
+#define AUDIO_ICON ((const char *)u8"\ue0ca")
+#define SUBTITLE_ICON ((const char *)u8"\ue048")
+#define MUTED_ICON ((const char *)u8"\ue04e")
+#define UNMUTED_ICON ((const char *)u8"\ue050")
+#define FULLSCREEN_ICON ((const char *)u8"\ue5d0")
+#define UNFULLSCREEN_ICON ((const char *)u8"\ue5d1")
 
 struct ImRect {
 	ImVec2 pos, size;

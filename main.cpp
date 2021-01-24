@@ -150,7 +150,7 @@ bool button(ImRect rect, ImVec2 padding, ImFont *font, const char *label)
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, padding);
 	ImGui::PushFont(font);
 	ImGui::SetCursorPos(rect.pos);
-	bool clicked = ImGui::Button(label, rect.size);
+	bool clicked = ImGui::Button((const char *)label, rect.size);
 	ImGui::PopFont();
 	ImGui::PopStyleVar(1);
 	return clicked;
