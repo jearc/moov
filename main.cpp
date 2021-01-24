@@ -346,7 +346,7 @@ void ui(SDL_Window *sdl_win, Player &p, Layout &l, Chat &c, int mouse_x, int mou
 	draw_list->AddRectFilled(
 		l.seek_bar.pos,
 		l.seek_bar.pos + ImVec2(seek_fill_bar_w, l.seek_bar.size.y),
-		decode_color("#ffaa00")
+		info.exploring ? decode_color("#ffaa00") : decode_color("#ffaa0088")
 	);
 
 	auto mouse_rel_seek = ImVec2(
