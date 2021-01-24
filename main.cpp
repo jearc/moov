@@ -259,6 +259,11 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 {
 	auto info = p.get_info();
 
+	auto intersects_rect = [](ImRect &r, ImVec2 &v) {
+		return r.pos.x <= v.x && v.x <= r.pos.x + r.size.x &&
+			r.pos.y <= v.y && v.y <= r.pos.y + r.size.y;
+	};
+
 	ImGui::SetNextWindowPos(l.master_win.pos);
 	ImGui::SetNextWindowSize(l.master_win.size);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -273,140 +278,143 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
-	draw_list->AddRectFilled(l.ui_bg.pos, l.ui_bg.pos + l.ui_bg.size,
-		0xbb000000, 0.0, ImDrawCornerFlags_None);
-
-	auto pp_but_str = info.c_paused ? PLAY_ICON : PAUSE_ICON;
-	if (button(l.pp_but, l.major_padding, icon_font, pp_but_str)) {
-		p.pause(!info.c_paused);
-		info = p.get_info();
-		send_control(info.pl_pos, info.c_time, info.c_paused);
-	}
-
-	std::string time_str = sec_to_timestr(info.c_time);
-	if (!info.exploring)
+	if (intersects_rect(l.ui_bg, in.mouse_state.pos))
 	{
-		int delay = std::round(abs(info.delay));
-		char unit = 's';
-		if (delay >= 60) {
-			unit = 'm';
-			delay /= 60;
+		draw_list->AddRectFilled(l.ui_bg.pos, l.ui_bg.pos + l.ui_bg.size,
+			0xbb000000, 0.0, ImDrawCornerFlags_None);
+
+		auto pp_but_str = info.c_paused ? PLAY_ICON : PAUSE_ICON;
+		if (button(l.pp_but, l.major_padding, icon_font, pp_but_str)) {
+			p.pause(!info.c_paused);
+			info = p.get_info();
+			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
-		if (delay >= 60) {
-			unit = 'h';
-			delay /= 60;
+
+		std::string time_str = sec_to_timestr(info.c_time);
+		if (!info.exploring)
+		{
+			int delay = std::round(abs(info.delay));
+			char unit = 's';
+			if (delay >= 60) {
+				unit = 'm';
+				delay /= 60;
+			}
+			if (delay >= 60) {
+				unit = 'h';
+				delay /= 60;
+			}
+			char delay_indicator[5];
+			delay = std::min(99, delay);
+			snprintf(delay_indicator, 5, " %c%d%c", info.delay < 0 ? '+' : '-', delay, unit);
+			time_str += delay_indicator;
 		}
-		char delay_indicator[5];
-		delay = std::min(99, delay);
-		snprintf(delay_indicator, 5, " %c%d%c", info.delay < 0 ? '+' : '-', delay, unit);
-		time_str += delay_indicator;
-	}
-	text(l.time, l.major_padding, text_font, time_str.c_str());
+		text(l.time, l.major_padding, text_font, time_str.c_str());
 
-	if (button(l.prev_but, l.major_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
-		p.set_pl_pos(info.pl_pos - 1);
-		info = p.get_info();
-		send_control(info.pl_pos, info.c_time, info.c_paused);
-	}
-
-	char pl_status_str_buf[10];
-	snprintf(pl_status_str_buf, 10, "%d/%d", info.pl_pos + 1, info.pl_count);
-	text(l.pl_status, l.major_padding, text_font, pl_status_str_buf);
-
-	if (button(l.next_but, l.major_padding, icon_font, PLAYLIST_NEXT_ICON)) {
-		p.set_pl_pos(info.pl_pos + 1);
-		info = p.get_info();
-		send_control(info.pl_pos, info.c_time, info.c_paused);
-	}
-
-	text(l.title, l.major_padding, text_font, info.title.c_str());
-
-	if (button(l.sub_prev_but, l.minor_padding, icon_font, LEFT_ICON))
-		p.set_sub(info.sub_pos - 1);
-	text(l.sub_icon, l.minor_padding, icon_font, SUBTITLE_ICON);
-	char sub_pos_str_buf[10];
-	snprintf(sub_pos_str_buf, 10, " %d/%d", info.sub_pos, info.sub_count);
-	text(l.sub_status, l.minor_padding, text_font, sub_pos_str_buf);
-	if (button(l.sub_next_but, l.minor_padding, icon_font, RIGHT_ICON))
-		p.set_sub(info.sub_pos - 1);
-
-	if (button(l.audio_prev_but, l.minor_padding, icon_font, LEFT_ICON))
-		p.set_audio(info.audio_pos - 1);
-	text(l.audio_icon, l.minor_padding, icon_font, AUDIO_ICON);
-	char audio_pos_str_buf[10];
-	snprintf(audio_pos_str_buf, 10, " %d/%d", info.audio_pos, info.audio_count);
-	text(l.audio_status, l.minor_padding, text_font, audio_pos_str_buf);
-	if (button(l.audio_next_but, l.minor_padding, icon_font, RIGHT_ICON))
-		p.set_audio(info.audio_pos + 1);
-
-	auto mute_str = info.muted ? MUTED_ICON : UNMUTED_ICON;
-	if (button(l.mute_but, l.major_padding, icon_font, mute_str))
-		p.toggle_mute();
-
-	auto fullscr_str = ui.fullscreen ? UNFULLSCREEN_ICON : FULLSCREEN_ICON;
-	if (button(l.fullscr_but, l.major_padding, icon_font, fullscr_str))
-		toggle_fullscreen(sdl_win, ui);
-
-	draw_list->AddRectFilled(
-		l.seek_bar.pos,
-		l.seek_bar.pos + l.seek_bar.size,
-		decode_color("#88888888")
-	);
-	float seek_fill_bar_w = l.seek_bar.size.x / 4;
-	if (info.exploring) {
-		float time_delta = info.e_time - info.c_time;
-		seek_fill_bar_w += (time_delta / 40.0 / 60.0) * l.seek_bar.size.x;
-	}
-	draw_list->AddRectFilled(
-		l.seek_bar.pos,
-		l.seek_bar.pos + ImVec2(seek_fill_bar_w, l.seek_bar.size.y),
-		info.exploring ? decode_color("#ffaa00") : decode_color("#ffaa0088")
-	);
-
-	auto mouse_rel_seek = in.mouse_state.pos - l.seek_bar.pos;
-	if (0 <= mouse_rel_seek.x && mouse_rel_seek.x <= l.seek_bar.size.x &&
-		  0 <= mouse_rel_seek.y && mouse_rel_seek.y <= l.seek_bar.size.y)
-	{
-		int zero_point = l.seek_bar.size.x / 4;
-		int point = mouse_rel_seek.x - zero_point;
-
-		float time = point / l.seek_bar.size.x * 40 * 60;
-		std::string indicator_text;
-		if (time < 0) {
-			indicator_text = "-" + sec_to_timestr(-std::round(time));
-		} else {
-			indicator_text = "+" + sec_to_timestr(std::round(time));
+		if (button(l.prev_but, l.major_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
+			p.set_pl_pos(info.pl_pos - 1);
+			info = p.get_info();
+			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
-		ImVec2 indicator_size = calc_text_size(text_font, ImVec2(0, 0), indicator_text.c_str());
 
-		auto indicator_pos = ImVec2(in.mouse_state.pos.x, l.seek_bar.pos.y);
+		char pl_status_str_buf[10];
+		snprintf(pl_status_str_buf, 10, "%d/%d", info.pl_pos + 1, info.pl_count);
+		text(l.pl_status, l.major_padding, text_font, pl_status_str_buf);
 
-		int right_space = l.seek_bar.size.x - mouse_rel_seek.x;
-		if (point > 0)
-			indicator_pos.x = in.mouse_state.pos.x - indicator_size.x;			
+		if (button(l.next_but, l.major_padding, icon_font, PLAYLIST_NEXT_ICON)) {
+			p.set_pl_pos(info.pl_pos + 1);
+			info = p.get_info();
+			send_control(info.pl_pos, info.c_time, info.c_paused);
+		}
 
-		draw_list->AddText(
-			indicator_pos,
-			decode_color("#ffffff"),
-			indicator_text.c_str()
+		text(l.title, l.major_padding, text_font, info.title.c_str());
+
+		if (button(l.sub_prev_but, l.minor_padding, icon_font, LEFT_ICON))
+			p.set_sub(info.sub_pos - 1);
+		text(l.sub_icon, l.minor_padding, icon_font, SUBTITLE_ICON);
+		char sub_pos_str_buf[10];
+		snprintf(sub_pos_str_buf, 10, " %d/%d", info.sub_pos, info.sub_count);
+		text(l.sub_status, l.minor_padding, text_font, sub_pos_str_buf);
+		if (button(l.sub_next_but, l.minor_padding, icon_font, RIGHT_ICON))
+			p.set_sub(info.sub_pos - 1);
+
+		if (button(l.audio_prev_but, l.minor_padding, icon_font, LEFT_ICON))
+			p.set_audio(info.audio_pos - 1);
+		text(l.audio_icon, l.minor_padding, icon_font, AUDIO_ICON);
+		char audio_pos_str_buf[10];
+		snprintf(audio_pos_str_buf, 10, " %d/%d", info.audio_pos, info.audio_count);
+		text(l.audio_status, l.minor_padding, text_font, audio_pos_str_buf);
+		if (button(l.audio_next_but, l.minor_padding, icon_font, RIGHT_ICON))
+			p.set_audio(info.audio_pos + 1);
+
+		auto mute_str = info.muted ? MUTED_ICON : UNMUTED_ICON;
+		if (button(l.mute_but, l.major_padding, icon_font, mute_str))
+			p.toggle_mute();
+
+		auto fullscr_str = ui.fullscreen ? UNFULLSCREEN_ICON : FULLSCREEN_ICON;
+		if (button(l.fullscr_but, l.major_padding, icon_font, fullscr_str))
+			toggle_fullscreen(sdl_win, ui);
+
+		draw_list->AddRectFilled(
+			l.seek_bar.pos,
+			l.seek_bar.pos + l.seek_bar.size,
+			decode_color("#88888888")
+		);
+		float seek_fill_bar_w = l.seek_bar.size.x / 4;
+		if (info.exploring) {
+			float time_delta = info.e_time - info.c_time;
+			seek_fill_bar_w += (time_delta / 40.0 / 60.0) * l.seek_bar.size.x;
+		}
+		draw_list->AddRectFilled(
+			l.seek_bar.pos,
+			l.seek_bar.pos + ImVec2(seek_fill_bar_w, l.seek_bar.size.y),
+			info.exploring ? decode_color("#ffaa00") : decode_color("#ffaa0088")
 		);
 
-		if (in.left_click) {
-			if (!info.exploring)
-				p.explore();
-			p.set_explore_time(info.c_time + time);
+		auto mouse_rel_seek = in.mouse_state.pos - l.seek_bar.pos;
+		if (0 <= mouse_rel_seek.x && mouse_rel_seek.x <= l.seek_bar.size.x &&
+				0 <= mouse_rel_seek.y && mouse_rel_seek.y <= l.seek_bar.size.y)
+		{
+			int zero_point = l.seek_bar.size.x / 4;
+			int point = mouse_rel_seek.x - zero_point;
+
+			float time = point / l.seek_bar.size.x * 40 * 60;
+			std::string indicator_text;
+			if (time < 0) {
+				indicator_text = "-" + sec_to_timestr(-std::round(time));
+			} else {
+				indicator_text = "+" + sec_to_timestr(std::round(time));
+			}
+			ImVec2 indicator_size = calc_text_size(text_font, ImVec2(0, 0), indicator_text.c_str());
+
+			auto indicator_pos = ImVec2(in.mouse_state.pos.x, l.seek_bar.pos.y);
+
+			int right_space = l.seek_bar.size.x - mouse_rel_seek.x;
+			if (point > 0)
+				indicator_pos.x = in.mouse_state.pos.x - indicator_size.x;			
+
+			draw_list->AddText(
+				indicator_pos,
+				decode_color("#ffffff"),
+				indicator_text.c_str()
+			);
+
+			if (in.left_click) {
+				if (!info.exploring)
+					p.explore();
+				p.set_explore_time(info.c_time + time);
+			}
 		}
-	}
 
-	if (info.exploring)
-	{
-		text(l.explore_status, l.major_padding, text_font, sec_to_timestr(info.e_time).c_str());
+		if (info.exploring)
+		{
+			text(l.explore_status, l.major_padding, text_font, sec_to_timestr(info.e_time).c_str());
 
-		if (button(l.cancel_but, l.major_padding, text_font, "Cancel"))
-			p.explore_cancel();
+			if (button(l.cancel_but, l.major_padding, text_font, "Cancel"))
+				p.explore_cancel();
 
-		if (button(l.accept_but, l.major_padding, text_font, "Accept"))
-			p.explore_accept();
+			if (button(l.accept_but, l.major_padding, text_font, "Accept"))
+				p.explore_accept();
+		}
 	}
 
 	if (ui.fullscreen) {
@@ -414,11 +422,6 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			ui.focus_chat = true;
 		chatbox(c, ui, l);
 	}
-
-	auto intersects_rect = [](ImRect &r, ImVec2 &v) {
-		return r.pos.x <= v.x && v.x <= r.pos.x + r.size.x &&
-			r.pos.y <= v.y && v.y <= r.pos.y + r.size.y;
-	};
 
 	bool mouse_on_nothing = !(intersects_rect(l.ui_bg, in.mouse_state.pos) || intersects_rect(l.chat_input, in.mouse_state.pos));
 
