@@ -35,6 +35,7 @@ Player::Player()
 	c_time = 0;
 	c_paused = true;
 	exploring = false;
+	speed = 1.0;
 
 	//syncmpv();
 }
@@ -114,6 +115,18 @@ void Player::update()
 	last_time = current_time;
 	if (!c_paused)
 		c_time += dt;
+
+	auto info = get_info();
+
+	auto clamp = [](double lo, double x, double hi) { return std::min(std::max(lo, x), hi); };
+
+	if ((speed != 1.0 && info.delay < -0.3) || info.delay < -0.5)
+		speed = 1.0 - 0.3*clamp(0, -info.delay/10, 1);
+	else if ((speed != 1.0 && info.delay >= 0.3) || info.delay >= 0.5)
+		speed = 1.0 + 0.3*clamp(0, info.delay/10, 1);
+	else
+		speed = 1.0;
+	mpv_set_property(mpv, "speed", MPV_FORMAT_DOUBLE, &speed);
 
 	mpv_event *e;
 	while (e = mpv_wait_event(mpv, 0), e->event_id != MPV_EVENT_NONE) {

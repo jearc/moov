@@ -89,6 +89,7 @@ private:
 	double c_time;
 	int c_paused;
 	int exploring;
+	double speed;
 
 	int64_t audio_count, sub_count;
 	std::string title;
