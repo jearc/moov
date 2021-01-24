@@ -613,6 +613,10 @@ int main(int argc, char **argv)
 		Frame_Input input = get_sdl_input(window);
 		mpvh.update();
 
+		auto info = mpvh.get_info();
+		std::string window_title = info.title == "" ? "Moov" : info.title + " - Moov";
+		SDL_SetWindowTitle(window, window_title.c_str());
+
 		if (input.fullscreen)
 			toggle_fullscreen(window, ui);
 
