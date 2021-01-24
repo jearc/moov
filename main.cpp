@@ -448,6 +448,11 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 	ui.left_down_on_something = in.left_click && (!mouse_on_nothing || ui.left_down_on_something);
 
+	if (in.scroll_down)
+		c.scroll_down();
+	if (in.scroll_up)
+		c.scroll_up();
+
 	ImGui::End();
 	ImGui::PopStyleVar(3);
 }
