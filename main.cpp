@@ -326,8 +326,6 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
-		text(l.title, l.major_padding, text_font, info.title.c_str());
-
 		if (button(l.sub_prev_but, l.minor_padding, icon_font, LEFT_ICON))
 			p.set_sub(info.sub_pos - 1);
 		text(l.sub_icon, l.minor_padding, icon_font, SUBTITLE_ICON);

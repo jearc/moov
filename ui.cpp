@@ -93,9 +93,6 @@ Layout calculate_layout(
 		rcurs -= l.major_padding.x;
 		l.audio_prev_but = calc_text_r(rcurs, y, l.minor_padding, icon_font, LEFT_ICON);
 		rcurs -= separator;
-
-		l.title.pos = ImVec2(lcurs, y);
-		l.title.size = ImVec2(rcurs - lcurs, l.infobar.size.y);
 	}
 
 	{

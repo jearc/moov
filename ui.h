@@ -30,7 +30,6 @@ struct Layout {
 	ImRect prev_but;
 	ImRect pl_status;
 	ImRect next_but;
-	ImRect title;
 	ImRect sub_prev_but;
 	ImRect sub_icon;
 	ImRect sub_status;
