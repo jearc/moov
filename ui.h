@@ -61,3 +61,4 @@ ImVec2 operator-(ImVec2 a, ImVec2 b);
 ImVec2 operator*(int a, ImVec2 b);
 bool operator==(const ImVec2 &a, const ImVec2 &b);
 ImVec2 calc_text_size(ImFont *font, ImVec2 padding, const char *string);
+bool intersects_rect(ImVec2 &v, ImRect &r);

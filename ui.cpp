@@ -47,6 +47,10 @@ ImRect calc_text_r(float &rcurs, float y, ImVec2 padding, ImFont *font, const ch
 	return r;
 }
 
+bool intersects_rect(ImVec2 &v, ImRect &r) {
+	return r.pos.x <= v.x && v.x <= r.pos.x + r.size.x && r.pos.y <= v.y && v.y <= r.pos.y + r.size.y;
+};
+
 Layout calculate_layout(
 	int text_height, int win_w, int win_h, ImFont *text_font, ImFont *icon_font)
 {
@@ -54,8 +58,8 @@ Layout calculate_layout(
 
 	Layout l = {};
 
-	l.master_win.pos = ImVec2(-1, -1);
-	l.master_win.size = ImVec2(win_w + 2, win_h + 2);
+	l.master_win.pos = ImVec2(0, 0);
+	l.master_win.size = ImVec2(win_w, win_h);
 	l.major_padding = ImVec2(text_height / 4, text_height / 15);
 	l.minor_padding = ImVec2(0, l.major_padding.y);
 

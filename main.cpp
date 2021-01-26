@@ -150,24 +150,9 @@ void handle_instruction(Player &p, Chat &c, json &j)
 	}
 }
 
-bool button(ImRect rect, ImVec2 padding, ImFont *font, const char *label)
+void rect(ImRect rect, uint32_t color)
 {
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, padding);
-	ImGui::PushFont(font);
-	ImGui::SetCursorPos(rect.pos);
-	bool clicked = ImGui::Button((const char *)label, rect.size);
-	ImGui::PopFont();
-	ImGui::PopStyleVar(1);
-	return clicked;
-}
-
-bool button(ImRect rect, ImVec2 padding)
-{
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, padding);
-	ImGui::SetCursorPos(rect.pos);
-	bool clicked = ImGui::Button("", rect.size);
-	ImGui::PopStyleVar(1);
-	return clicked;
+	ImGui::GetWindowDrawList()->AddRectFilled(rect.pos, rect.pos + rect.size, color);
 }
 
 void text(ImRect rect, ImVec2 padding, ImFont *font, const char *text)
@@ -177,9 +162,28 @@ void text(ImRect rect, ImVec2 padding, ImFont *font, const char *text)
 	ImGui::PopFont();
 }
 
-void rect(ImRect rect, uint32_t color)
+bool button(UI_State &ui, Frame_Input &in, ImRect r, ImVec2 padding, ImFont *font = nullptr, const char *label = nullptr)
 {
-	ImGui::GetWindowDrawList()->AddRectFilled(rect.pos, rect.pos + rect.size, color);
+	enum { none, hover, pressed } state = none;
+	if (intersects_rect(in.mouse_state.pos, r) && in.mouse_state.in_window)
+		state = hover;
+	if (state == hover && ui.initial_left_down.has_value() && intersects_rect(ui.initial_left_down->pos, r))
+		state = pressed;
+
+	bool click = in.left_up && ui.initial_left_down.has_value() && intersects_rect(ui.initial_left_down->pos, r);
+
+	uint32_t col;
+	switch (state) {
+	case none: col = decode_color("#ff5555"); break;
+	case hover: col = decode_color("#55ff55"); break;
+	case pressed: col = decode_color("#5555ff"); break;
+	};
+	rect(r, col);
+	
+	if (font != nullptr && label != nullptr)
+		text(r, padding, font, label);
+
+	return click;
 }
 
 void chatbox(Chat &c, UI_State &ui, Layout &l)
@@ -189,6 +193,9 @@ void chatbox(Chat &c, UI_State &ui, Layout &l)
 	ImVec2 message_pos = l.chat_log.pos;
 	message_pos.y = l.chat_log.pos.y + l.chat_log.size.y;
 	auto messages = c.messages();
+
+	auto e = c.get_last_end_scroll_time();
+	auto n = std::chrono::steady_clock::now();
 	for (auto it = messages.rbegin(); it != messages.rend(); it++)
 	{
 		auto &msg = *it;
@@ -198,8 +205,6 @@ void chatbox(Chat &c, UI_State &ui, Layout &l)
 			double K = 5.0;
 			double F = 3.0;
 			auto m = msg.time;
-			auto e = c.get_last_end_scroll_time();
-			auto n = std::chrono::steady_clock::now();
 			double x = std::chrono::duration<double>(n-std::max(m, e)).count();
 			opacity = 1.0 - std::min(std::max(0.0, (x-K)/F), 1.0);
 		}
@@ -226,39 +231,30 @@ void chatbox(Chat &c, UI_State &ui, Layout &l)
 		draw_list->AddText(nullptr, 0.0f, message_pos, fg, msg.text.c_str(), msg.text.c_str() + msg.text.size(), l.chat_log.size.x, nullptr);
 	}
 
-	static ImVec4 input_bg = ImVec4(0, 0, 0, 0);
-
 	static std::array<char, 1024> buf;
 	ImGui::SetNextItemWidth(l.chat_input.size.x);
 	ImGui::SetCursorPos(l.chat_input.pos);
-	ImGui::PushStyleColor(ImGuiCol_FrameBg, input_bg);
+	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, (buf[0] != '\0') ? 1.f : 0.f);
 	if (ImGui::InputText("", buf.data(), 1024, ImGuiInputTextFlags_EnterReturnsTrue))
 	{
-		json j;
-		j["type"] = "user_input";
-		j["text"] = buf.data();
-		std::cout << j << std::endl;
-		std::fill(buf.begin(), buf.end(), 0);
-		ui.focus_chat = false;
-		input_bg = ImVec4(0, 0, 0, 0);
+		if (buf[0] != '\0') {
+			json j;
+			j["type"] = "user_input";
+			j["text"] = buf.data();
+			std::cout << j << std::endl;
+		}
+		buf[0] = '\0';
 	}
-	ImGui::PopStyleColor();
-	if (ui.focus_chat)
-	{
-		ImGui::SetKeyboardFocusHere(-1);
-		ui.focus_chat = false;
-		input_bg = ImVec4(0.5, 0.5, 0.5, 0.5);
-	}
+	ImGui::PopStyleVar();
+	ImGui::SetKeyboardFocusHere(-1);
 }
 
 void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, Layout &l, Chat &c)
 {
 	auto info = p.get_info();
 
-	auto intersects_rect = [](ImRect &r, ImVec2 &v) {
-		return r.pos.x <= v.x && v.x <= r.pos.x + r.size.x &&
-			r.pos.y <= v.y && v.y <= r.pos.y + r.size.y;
-	};
+	if (in.left_click && !ui.initial_left_down.has_value())
+		ui.initial_left_down = in.mouse_state;
 
 	if (ui.last_mouse_pos != in.mouse_state.pos)
 		ui.last_activity = std::chrono::steady_clock::now();
@@ -277,7 +273,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
-	bool display_ui = intersects_rect(l.ui_bg, in.mouse_state.pos)
+	bool display_ui = intersects_rect(in.mouse_state.pos, l.ui_bg)
 		|| std::chrono::steady_clock::now() - ui.last_activity < std::chrono::seconds(2);
 
 	if (ui.fullscreen && !display_ui)
@@ -287,7 +283,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 	{
 		rect(l.ui_bg, 0xbb000000);
 
-		if (button(l.prev_but, l.minor_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
+		if (button(ui, in, l.prev_but, l.minor_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
 			p.set_pl_pos(info.pl_pos - 1);
 			info = p.get_info();
 			send_control(info.pl_pos, info.c_time, info.c_paused);
@@ -296,14 +292,14 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		auto pl_status = std::stringstream{} << (info.pl_pos + 1) << "/" << info.pl_count;
 		text(l.pl_status, l.major_padding, text_font, pl_status.str().c_str());
 
-		if (button(l.next_but, l.minor_padding, icon_font, PLAYLIST_NEXT_ICON)) {
+		if (button(ui, in, l.next_but, l.minor_padding, icon_font, PLAYLIST_NEXT_ICON)) {
 			p.set_pl_pos(info.pl_pos + 1);
 			info = p.get_info();
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
 		auto pp_but_str = info.c_paused ? PLAY_ICON : PAUSE_ICON;
-		if (button(l.pp_but, l.major_padding, icon_font, pp_but_str)) {
+		if (button(ui, in, l.pp_but, l.major_padding, icon_font, pp_but_str)) {
 			p.pause(!info.c_paused);
 			info = p.get_info();
 			send_control(info.pl_pos, info.c_time, info.c_paused);
@@ -337,39 +333,39 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			text(indicator_rect, l.major_padding, text_font, indicator.str().c_str());
 		}
 
-		if (button(l.sync_but, l.major_padding, text_font, "Sync"))
+		if (button(ui, in, l.sync_but, l.major_padding, text_font, "Sync"))
 		{
 			p.force_sync();
 		}
 
-		if (button(l.canonize_but, l.major_padding, text_font, "Canonicalize"))
+		if (button(ui, in, l.canonize_but, l.major_padding, text_font, "Canonicalize"))
 		{
 			p.set_time(info.c_time - info.delay);		
 		}
 
-		if (button(l.audio_but, l.major_padding))
+		if (button(ui, in, l.audio_but, l.major_padding))
 			p.set_audio(info.audio_pos + 1);
 		text(l.audio_icon, l.minor_padding, icon_font, AUDIO_ICON);
 		auto audio_status = std::stringstream{} << " " << info.audio_pos << "/" << info.audio_count;
 		text(l.audio_status, l.minor_padding, text_font, audio_status.str().c_str());
 
-		if (button(l.sub_but, l.major_padding))
+		if (button(ui, in, l.sub_but, l.major_padding))
 			p.set_audio(info.sub_pos + 1);
 		text(l.sub_icon, l.minor_padding, icon_font, SUBTITLE_ICON);
 		auto sub_status = std::stringstream{} << " " << info.sub_pos << "/" << info.sub_count;
 		text(l.sub_status, l.minor_padding, text_font, sub_status.str().c_str());
 
 		auto mute_str = info.muted ? MUTED_ICON : UNMUTED_ICON;
-		if (button(l.mute_but, l.major_padding, icon_font, mute_str))
+		if (button(ui, in, l.mute_but, l.major_padding, icon_font, mute_str))
 			p.toggle_mute();
 
 		auto fullscr_str = ui.fullscreen ? UNFULLSCREEN_ICON : FULLSCREEN_ICON;
-		if (button(l.fullscr_but, l.major_padding, icon_font, fullscr_str))
+		if (button(ui, in, l.fullscr_but, l.major_padding, icon_font, fullscr_str))
 			toggle_fullscreen(sdl_win, ui);
 
 		int notch_duration = 5 * 60;
 
-		if (intersects_rect(l.seek_bar, in.mouse_state.pos)) {
+		if (intersects_rect(in.mouse_state.pos, l.seek_bar)) {
 			if (in.scroll_up && (l.seek_bar.size.x / (ui.seek_bar_scale * 1.3 / notch_duration)) >= 3)
 				ui.seek_bar_scale *= 1.3;
 			else if (in.scroll_down)
@@ -442,21 +438,19 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		{
 			text(l.explore_status, l.major_padding, text_font, sec_to_timestr(info.e_time).c_str());
 
-			if (button(l.cancel_but, l.major_padding, text_font, "Cancel"))
+			if (button(ui, in, l.cancel_but, l.major_padding, text_font, "Cancel"))
 				p.explore_cancel();
 
-			if (button(l.accept_but, l.major_padding, text_font, "Accept"))
+			if (button(ui, in, l.accept_but, l.major_padding, text_font, "Accept"))
 				p.explore_accept();
 		}
 	}
 
 	if (ui.fullscreen) {
-		if (in.ret)
-			ui.focus_chat = true;
 		chatbox(c, ui, l);
 	}
 
-	bool mouse_on_nothing = !(intersects_rect(l.ui_bg, in.mouse_state.pos) || intersects_rect(l.chat_input, in.mouse_state.pos));
+	bool mouse_on_nothing = !(intersects_rect(in.mouse_state.pos, l.ui_bg) || intersects_rect(in.mouse_state.pos, l.chat_input));
 
 	bool left_clicked = ui.left_down_on_nothing.has_value() && !in.left_click && ui.left_down_on_nothing->pos == in.mouse_state.pos
 		&& ui.left_down_on_nothing->global_pos == in.mouse_state.global_pos;
@@ -493,6 +487,8 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 	ImGui::PopStyleVar(3);
 
 	ui.last_mouse_pos = in.mouse_state.pos;
+
+	if (in.left_up) ui.initial_left_down.reset();
 }
 
 Frame_Input get_sdl_input(SDL_Window *win)
@@ -505,6 +501,7 @@ Frame_Input get_sdl_input(SDL_Window *win)
 	in.left_click = button_state & SDL_BUTTON(SDL_BUTTON_LEFT);
 	SDL_GetGlobalMouseState(&mouse_x, &mouse_y);
 	in.mouse_state.global_pos = ImVec2(mouse_x, mouse_y);
+	in.mouse_state.in_window = SDL_GetMouseFocus() == win;
 
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
@@ -525,6 +522,9 @@ Frame_Input get_sdl_input(SDL_Window *win)
 				ImGui_ImplSDL2_ProcessEvent(&e);
 			}
 			break;
+		case SDL_MOUSEBUTTONUP:
+			if (e.button.button == SDL_BUTTON_LEFT)
+				in.left_up = true;
 		case SDL_MOUSEWHEEL:
 			if (e.wheel.y < 0)
 				in.scroll_down = true;

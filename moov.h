@@ -103,6 +103,7 @@ struct ImRect {
 
 struct Mouse_State {
 	ImVec2 pos, global_pos;
+	bool in_window;
 };
 
 struct Frame_Input {
@@ -113,12 +114,12 @@ struct Frame_Input {
 	bool scroll_up = false;
 	bool scroll_down = false;
 	bool fullscreen = false;
+	bool left_up = false;
 };
 
 struct UI_State {
 	bool fullscreen = false;
 	ImRect window_geometry;
-	bool focus_chat = false;
 	std::optional<time_point> initial_fullscreen_click;
 	std::optional<Mouse_State> left_down_on_nothing;
 	bool left_down_on_something = false;
@@ -126,6 +127,7 @@ struct UI_State {
 	ImVec2 last_mouse_pos;
 	bool delay_indicator_sign = false;
 	double seek_bar_scale = 40 * 60;
+	std::optional<Mouse_State> initial_left_down;
 };
 
 std::string sec_to_timestr(uint32_t seconds);
