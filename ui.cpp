@@ -66,33 +66,39 @@ Layout calculate_layout(
 		float lcurs = l.infobar.pos.x, rcurs = l.master_win.pos.x + l.master_win.size.x;
 		float y = l.infobar.pos.y + l.minor_padding.y;
 
+		l.prev_but = calc_text_l(lcurs, y, l.minor_padding, icon_font, PLAYLIST_PREVIOUS_ICON);
+		l.pl_status = calc_text_l(lcurs, y, l.major_padding, text_font, "1/1");
+		l.next_but = calc_text_l(lcurs, y, l.minor_padding, icon_font, PLAYLIST_NEXT_ICON);
+		lcurs += separator;
 		l.pp_but = calc_text_l(lcurs, y, l.major_padding, icon_font, PLAY_ICON);
 		lcurs += separator;
 		l.time = calc_text_l(lcurs, y, l.major_padding, text_font, "00:00:00 +59m");
 		lcurs += separator;
-		l.prev_but = calc_text_l(lcurs, y, l.major_padding, icon_font, PLAYLIST_PREVIOUS_ICON);
-		l.pl_status = calc_text_l(lcurs, y, l.major_padding, text_font, "1/1");
-		l.next_but = calc_text_l(lcurs, y, l.major_padding, icon_font, PLAYLIST_NEXT_ICON);
+		l.sync_but = calc_text_l(lcurs, y, l.major_padding, text_font, "S");
+		l.canonize_but = calc_text_l(lcurs, y, l.major_padding, text_font, "C");
 		lcurs += separator;
 
 		l.fullscr_but = calc_text_r(rcurs, y, l.major_padding, icon_font, FULLSCREEN_ICON);
 		rcurs -= separator;
 		l.mute_but = calc_text_r(rcurs, y, l.major_padding, icon_font, MUTED_ICON);
 		rcurs -= separator;
-		l.sub_next_but = calc_text_r(rcurs, y, l.minor_padding, icon_font, RIGHT_ICON);
 		rcurs -= l.major_padding.x;
 		l.sub_status = calc_text_r(rcurs, y, l.minor_padding, text_font, " 0/0");
 		l.sub_icon = calc_text_r(rcurs, y, l.minor_padding, icon_font, SUBTITLE_ICON);
 		rcurs -= l.major_padding.x;
-		l.sub_prev_but = calc_text_r(rcurs, y, l.minor_padding, icon_font, LEFT_ICON);
+		l.sub_but = {
+			{rcurs, y},
+			{2 * l.major_padding.x + l.sub_icon.size.x + l.sub_status.size.x, l.sub_status.size.y}
+		};
 		rcurs -= separator;
-		l.audio_next_but = calc_text_r(rcurs, y, l.minor_padding, icon_font, RIGHT_ICON);
 		rcurs -= l.major_padding.x;
 		l.audio_status = calc_text_r(rcurs, y, l.minor_padding, text_font, " 1/1");
 		l.audio_icon = calc_text_r(rcurs, y, l.minor_padding, icon_font, AUDIO_ICON);
 		rcurs -= l.major_padding.x;
-		l.audio_prev_but = calc_text_r(rcurs, y, l.minor_padding, icon_font, LEFT_ICON);
-		rcurs -= separator;
+		l.audio_but = {
+			{rcurs, y},
+			{2 * l.major_padding.x + l.audio_icon.size.x + l.audio_status.size.x, l.audio_status.size.y}
+		};
 	}
 
 	{

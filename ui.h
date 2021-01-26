@@ -30,14 +30,12 @@ struct Layout {
 	ImRect prev_but;
 	ImRect pl_status;
 	ImRect next_but;
-	ImRect sub_prev_but;
+	ImRect sub_but;
 	ImRect sub_icon;
 	ImRect sub_status;
-	ImRect sub_next_but;
-	ImRect audio_prev_but;
+	ImRect audio_but;
 	ImRect audio_icon;
 	ImRect audio_status;
-	ImRect audio_next_but;
 	ImRect mute_but;
 	ImRect fullscr_but;
 

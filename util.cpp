@@ -6,24 +6,22 @@
 #include <stdint.h>
 #include <assert.h>
 #include <string>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
 
-void die(const char *fmt, ...)
+void die(std::string_view str)
 {
-	va_list args;
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
+	std::cout << str << std::endl;
 	exit(EXIT_FAILURE);
 }
 
-std::string sec_to_timestr(unsigned int sec)
+std::string sec_to_timestr(uint32_t sec)
 {
-	unsigned int h, m, s;
-	h = sec / 3600;
-	m = (sec % 3600) / 60;
-	s = sec % 60;
+	auto ss = std::stringstream{} << std::setfill('0')
+		<< std::setw(2) << (sec / 3600) << ":"
+		<< std::setw(2) << ((sec % 3600) / 60) << ":"
+		<< std::setw(2) << (sec % 60);
 
-	char buf[15] = { 0 };
-	snprintf(buf, 15, "%02u:%02u:%02u", h, m, s);
-	return std::string(buf);
+	return ss.str();
 }

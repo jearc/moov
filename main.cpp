@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <mutex>
 #include <queue>
 #include <string_view>
@@ -172,18 +173,25 @@ bool button(ImRect rect, ImVec2 padding, ImFont *font, const char *label)
 	return clicked;
 }
 
+bool button(ImRect rect, ImVec2 padding)
+{
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, padding);
+	ImGui::SetCursorPos(rect.pos);
+	bool clicked = ImGui::Button("", rect.size);
+	ImGui::PopStyleVar(1);
+	return clicked;
+}
+
 void text(ImRect rect, ImVec2 padding, ImFont *font, const char *text)
 {
-	static int i = 0;
-	char name[100] = {};
-	snprintf(name, 100, "text%d", i++);
-
 	ImGui::PushFont(font);
-	ImGui::SetCursorPos(rect.pos + padding);
-	ImGui::BeginChild(name, rect.size - 2 * padding);
-	ImGui::Text("%s", text);
-	ImGui::EndChild();
+	ImGui::GetWindowDrawList()->AddText(rect.pos + padding, decode_color("#ffffff"), text);
 	ImGui::PopFont();
+}
+
+void rect(ImRect rect, uint32_t color)
+{
+	ImGui::GetWindowDrawList()->AddRectFilled(rect.pos, rect.pos + rect.size, color);
 }
 
 void chatbox(Chat &c, UI_State &ui, Layout &l)
@@ -280,8 +288,22 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 	if (intersects_rect(l.ui_bg, in.mouse_state.pos))
 	{
-		draw_list->AddRectFilled(l.ui_bg.pos, l.ui_bg.pos + l.ui_bg.size,
-			0xbb000000, 0.0, ImDrawCornerFlags_None);
+		rect(l.ui_bg, 0xbb000000);
+
+		if (button(l.prev_but, l.minor_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
+			p.set_pl_pos(info.pl_pos - 1);
+			info = p.get_info();
+			send_control(info.pl_pos, info.c_time, info.c_paused);
+		}
+
+		auto pl_status = std::stringstream{} << (info.pl_pos + 1) << "/" << info.pl_count;
+		text(l.pl_status, l.major_padding, text_font, pl_status.str().c_str());
+
+		if (button(l.next_but, l.minor_padding, icon_font, PLAYLIST_NEXT_ICON)) {
+			p.set_pl_pos(info.pl_pos + 1);
+			info = p.get_info();
+			send_control(info.pl_pos, info.c_time, info.c_paused);
+		}
 
 		auto pp_but_str = info.c_paused ? PLAY_ICON : PAUSE_ICON;
 		if (button(l.pp_but, l.major_padding, icon_font, pp_but_str)) {
@@ -290,59 +312,40 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
-		std::string time_str = sec_to_timestr(info.c_time);
+		auto time_str = std::stringstream{} << sec_to_timestr(info.c_time);
 		if (!info.exploring)
 		{
 			int delay = std::round(abs(info.delay));
-			char unit = 's';
+			const char *unit = "s";
 			if (delay >= 60) {
-				unit = 'm';
+				unit = "m";
 				delay /= 60;
 			}
 			if (delay >= 60) {
-				unit = 'h';
+				unit = "h";
 				delay /= 60;
 			}
-			char delay_indicator[5];
-			delay = std::min(99, delay);
-			snprintf(delay_indicator, 5, " %c%d%c", info.delay < 0 ? '+' : '-', delay, unit);
-			time_str += delay_indicator;
+			time_str << (info.delay < 0 ? "+" : "-") << std::min(99, delay) << unit;
 		}
-		text(l.time, l.major_padding, text_font, time_str.c_str());
+		text(l.time, l.major_padding, text_font, time_str.str().c_str());
 
-		if (button(l.prev_but, l.major_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
-			p.set_pl_pos(info.pl_pos - 1);
-			info = p.get_info();
-			send_control(info.pl_pos, info.c_time, info.c_paused);
-		}
+		if (button(l.sync_but, l.major_padding, text_font, "S"))
+		{}
 
-		char pl_status_str_buf[10];
-		snprintf(pl_status_str_buf, 10, "%d/%d", info.pl_pos + 1, info.pl_count);
-		text(l.pl_status, l.major_padding, text_font, pl_status_str_buf);
+		if (button(l.canonize_but, l.major_padding, text_font, "C"))
+		{}
 
-		if (button(l.next_but, l.major_padding, icon_font, PLAYLIST_NEXT_ICON)) {
-			p.set_pl_pos(info.pl_pos + 1);
-			info = p.get_info();
-			send_control(info.pl_pos, info.c_time, info.c_paused);
-		}
-
-		if (button(l.sub_prev_but, l.minor_padding, icon_font, LEFT_ICON))
-			p.set_sub(info.sub_pos - 1);
-		text(l.sub_icon, l.minor_padding, icon_font, SUBTITLE_ICON);
-		char sub_pos_str_buf[10];
-		snprintf(sub_pos_str_buf, 10, " %d/%d", info.sub_pos, info.sub_count);
-		text(l.sub_status, l.minor_padding, text_font, sub_pos_str_buf);
-		if (button(l.sub_next_but, l.minor_padding, icon_font, RIGHT_ICON))
-			p.set_sub(info.sub_pos - 1);
-
-		if (button(l.audio_prev_but, l.minor_padding, icon_font, LEFT_ICON))
-			p.set_audio(info.audio_pos - 1);
-		text(l.audio_icon, l.minor_padding, icon_font, AUDIO_ICON);
-		char audio_pos_str_buf[10];
-		snprintf(audio_pos_str_buf, 10, " %d/%d", info.audio_pos, info.audio_count);
-		text(l.audio_status, l.minor_padding, text_font, audio_pos_str_buf);
-		if (button(l.audio_next_but, l.minor_padding, icon_font, RIGHT_ICON))
+		if (button(l.audio_but, l.major_padding))
 			p.set_audio(info.audio_pos + 1);
+		text(l.audio_icon, l.minor_padding, icon_font, AUDIO_ICON);
+		auto audio_status = std::stringstream{} << " " << info.audio_pos << "/" << info.audio_count;
+		text(l.audio_status, l.minor_padding, text_font, audio_status.str().c_str());
+
+		if (button(l.sub_but, l.major_padding))
+			p.set_audio(info.sub_pos + 1);
+		text(l.sub_icon, l.minor_padding, icon_font, SUBTITLE_ICON);
+		auto sub_status = std::stringstream{} << " " << info.sub_pos << "/" << info.sub_count;
+		text(l.sub_status, l.minor_padding, text_font, sub_status.str().c_str());
 
 		auto mute_str = info.muted ? MUTED_ICON : UNMUTED_ICON;
 		if (button(l.mute_but, l.major_padding, icon_font, mute_str))
@@ -352,19 +355,14 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		if (button(l.fullscr_but, l.major_padding, icon_font, fullscr_str))
 			toggle_fullscreen(sdl_win, ui);
 
-		draw_list->AddRectFilled(
-			l.seek_bar.pos,
-			l.seek_bar.pos + l.seek_bar.size,
-			decode_color("#88888888")
-		);
+		rect(l.seek_bar, decode_color("#88888888"));
 		float seek_fill_bar_w = l.seek_bar.size.x / 4;
 		if (info.exploring) {
 			float time_delta = info.e_time - info.c_time;
 			seek_fill_bar_w += (time_delta / 40.0 / 60.0) * l.seek_bar.size.x;
 		}
-		draw_list->AddRectFilled(
-			l.seek_bar.pos,
-			l.seek_bar.pos + ImVec2(seek_fill_bar_w, l.seek_bar.size.y),
+		rect(
+			{l.seek_bar.pos, {seek_fill_bar_w, l.seek_bar.size.y}},
 			info.exploring ? decode_color("#ffaa00") : decode_color("#ffaa0088")
 		);
 
@@ -376,13 +374,13 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			int point = mouse_rel_seek.x - zero_point;
 
 			float time = point / l.seek_bar.size.x * 40 * 60;
-			std::string indicator_text;
+			auto indicator_text = std::stringstream{};
 			if (time < 0) {
-				indicator_text = "-" + sec_to_timestr(-std::round(time));
+				indicator_text << "-" << sec_to_timestr(-std::round(time));
 			} else {
-				indicator_text = "+" + sec_to_timestr(std::round(time));
+				indicator_text << "+" << sec_to_timestr(std::round(time));
 			}
-			ImVec2 indicator_size = calc_text_size(text_font, ImVec2(0, 0), indicator_text.c_str());
+			ImVec2 indicator_size = calc_text_size(text_font, ImVec2(0, 0), indicator_text.str().c_str());
 
 			auto indicator_pos = ImVec2(in.mouse_state.pos.x, l.seek_bar.pos.y);
 
@@ -390,11 +388,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			if (point > 0)
 				indicator_pos.x = in.mouse_state.pos.x - indicator_size.x;			
 
-			draw_list->AddText(
-				indicator_pos,
-				decode_color("#ffffff"),
-				indicator_text.c_str()
-			);
+			text({indicator_pos, indicator_size}, l.minor_padding, text_font, indicator_text.str().c_str());
 
 			if (in.left_click) {
 				if (!info.exploring)

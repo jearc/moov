@@ -123,7 +123,7 @@ struct UI_State {
 	bool left_down_on_something = false;
 };
 
-std::string sec_to_timestr(unsigned int seconds);
-void die(const char *fmt, ...);
+std::string sec_to_timestr(uint32_t seconds);
+void die(std::string_view str);
 void send_control(int64_t pos, double time, bool paused);
 std::string statestr(double time, int paused, int64_t pl_pos, int64_t pl_count);
