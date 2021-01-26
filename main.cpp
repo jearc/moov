@@ -366,9 +366,9 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		int notch_duration = 5 * 60;
 
 		if (intersects_rect(in.mouse_state.pos, l.seek_bar)) {
-			if (in.scroll_up && (l.seek_bar.size.x / (ui.seek_bar_scale * 1.3 / notch_duration)) >= 3)
+			if (in.scroll_down && (l.seek_bar.size.x / (ui.seek_bar_scale * 1.3 / notch_duration)) >= 3)
 				ui.seek_bar_scale *= 1.3;
-			else if (in.scroll_down)
+			else if (in.scroll_up)
 				ui.seek_bar_scale /= 1.3;
 		}
 
