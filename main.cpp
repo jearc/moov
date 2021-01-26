@@ -312,7 +312,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		auto time_str = std::stringstream{} << sec_to_timestr(info.c_time);
 		if (!info.exploring)
 		{
-			int delay = std::round(abs(info.delay));
+			uint32_t delay = std::round(abs(info.delay));
 			const char *unit = "s";
 			if (delay >= 60) {
 				unit = "m";
@@ -321,8 +321,13 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			if (delay >= 60) {
 				unit = "h";
 				delay /= 60;
+				delay = std::max(delay, 99u);
 			}
-			time_str << (info.delay < 0 ? "+" : "-") << std::min(99, delay) << unit;
+			if (ui.delay_indicator_sign && info.delay < -0.1)
+				ui.delay_indicator_sign = false;
+			else if (ui.delay_indicator_sign && info.delay > 0.1)
+				ui.delay_indicator_sign = true;
+			time_str << (ui.delay_indicator_sign ? "+" : "-") << delay << unit;
 		}
 		text(l.time, l.major_padding, text_font, time_str.str().c_str());
 

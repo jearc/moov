@@ -124,6 +124,7 @@ struct UI_State {
 	bool left_down_on_something = false;
 	time_point last_activity;
 	ImVec2 last_mouse_pos;
+	bool delay_indicator_sign = false;
 };
 
 std::string sec_to_timestr(uint32_t seconds);
