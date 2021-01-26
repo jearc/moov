@@ -32,8 +32,7 @@ void *get_proc_address_mpv(void *fn_ctx, const char *name)
 }
 
 void on_mpv_redraw(void *mpv_redraw)
-{
-	//*(bool *)mpv_redraw = true;
+{ 
 }
 
 void toggle_fullscreen(SDL_Window *win, UI_State &ui)
@@ -598,8 +597,6 @@ int main(int argc, char **argv)
 	mpvh.create_render_context(&mpv_ctx, render_params);
 	mpv_render_context_set_update_callback(mpv_ctx, on_mpv_redraw, nullptr);
 
-	bool mpv_redraw = false;
-
 	Chat chat;
 	std::queue<json> input_queue;
 	std::mutex input_lock;
@@ -612,7 +609,7 @@ int main(int argc, char **argv)
 
 	int64_t t_last = 0, t_now = 0;
 	while (1) {
-		SDL_Delay(4);
+		SDL_Delay(1);
 		t_now = SDL_GetPerformanceCounter();
 		double delta = (t_now - t_last) / (double)SDL_GetPerformanceFrequency();
 		if (delta <= 1 / 165.0)
@@ -638,14 +635,6 @@ int main(int argc, char **argv)
 			}
 		}
 
-		bool redraw = false;
-		if (mpv_redraw) {
-			redraw = true;
-			mpv_redraw = false;
-		}
-		if (SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS)
-			redraw = true;
-
 		Frame_Input input = get_sdl_input(window);
 		mpvh.update();
 
@@ -655,9 +644,6 @@ int main(int argc, char **argv)
 
 		if (input.fullscreen)
 			toggle_fullscreen(window, ui);
-
-		//if (!redraw)
-		//	continue;
 
 		int w, h;
 		SDL_GetWindowSize(window, &w, &h);
