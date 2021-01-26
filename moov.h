@@ -125,6 +125,7 @@ struct UI_State {
 	time_point last_activity;
 	ImVec2 last_mouse_pos;
 	bool delay_indicator_sign = false;
+	double seek_bar_scale = 40 * 60;
 };
 
 std::string sec_to_timestr(uint32_t seconds);

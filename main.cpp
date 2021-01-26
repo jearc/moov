@@ -368,11 +368,18 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		if (button(l.fullscr_but, l.major_padding, icon_font, fullscr_str))
 			toggle_fullscreen(sdl_win, ui);
 
+		if (intersects_rect(l.seek_bar, in.mouse_state.pos)) {
+			if (in.scroll_up)
+				ui.seek_bar_scale *= 1.3;
+			else if (in.scroll_down)
+				ui.seek_bar_scale /= 1.3;
+		}
+
 		rect(l.seek_bar, decode_color("#88888888"));
 		float seek_fill_bar_w = l.seek_bar.size.x / 4;
 		if (info.exploring) {
 			float time_delta = info.e_time - info.c_time;
-			seek_fill_bar_w += (time_delta / 40.0 / 60.0) * l.seek_bar.size.x;
+			seek_fill_bar_w += (time_delta / ui.seek_bar_scale) * l.seek_bar.size.x;
 		}
 		rect(
 			{l.seek_bar.pos, {seek_fill_bar_w, l.seek_bar.size.y}},
@@ -386,7 +393,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			int zero_point = l.seek_bar.size.x / 4;
 			int point = mouse_rel_seek.x - zero_point;
 
-			float time = point / l.seek_bar.size.x * 40 * 60;
+			float time = point / l.seek_bar.size.x * ui.seek_bar_scale;
 			auto indicator_text = std::stringstream{};
 			if (time < 0) {
 				indicator_text << "-" << sec_to_timestr(-std::round(time));
