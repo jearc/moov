@@ -339,10 +339,14 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		text(l.time, l.major_padding, text_font, time_str.str().c_str());
 
 		if (button(l.sync_but, l.major_padding, text_font, "S"))
-		{}
+		{
+			p.force_sync();
+		}
 
 		if (button(l.canonize_but, l.major_padding, text_font, "C"))
-		{}
+		{
+			p.set_time(info.c_time - info.delay);		
+		}
 
 		if (button(l.audio_but, l.major_padding))
 			p.set_audio(info.audio_pos + 1);

@@ -80,9 +80,10 @@ public:
 	void create_render_context(mpv_render_context **ctx, mpv_render_param render_params[]);
 	void set_audio(int64_t track);
 	void set_sub(int64_t track);
+	void force_sync();
 
 private:
-	void syncmpv();
+	void syncmpv(bool force = false);
 
 	mpv_handle *mpv;
 	int64_t last_time;

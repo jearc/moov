@@ -27,6 +27,8 @@ struct Layout {
 
 	ImRect pp_but;
 	ImRect time;
+	ImRect sync_but;
+	ImRect canonize_but;
 	ImRect prev_but;
 	ImRect pl_status;
 	ImRect next_but;

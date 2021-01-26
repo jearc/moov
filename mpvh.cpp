@@ -52,7 +52,7 @@ void Player::create_render_context(mpv_render_context **ctx, mpv_render_param re
 	mpv_render_context_create(ctx, mpv, render_params);
 }
 
-void Player::syncmpv()
+void Player::syncmpv(bool force)
 {
 	int64_t mpv_pos;
 	mpv_get_property(mpv, "playlist-pos", MPV_FORMAT_INT64, &mpv_pos);
@@ -71,7 +71,7 @@ void Player::syncmpv()
 
 	double mpv_time;
 	mpv_get_property(mpv, "time-pos", MPV_FORMAT_DOUBLE, &mpv_time);
-	if (abs(mpv_time - c_time) > 5)
+	if (force || abs(mpv_time - c_time) > 5)
 		mpv_set_property(mpv, "time-pos", MPV_FORMAT_DOUBLE, &c_time);
 }
 
@@ -257,4 +257,9 @@ void Player::set_explore_time(double time)
 {
 	assert(exploring);
 	mpv_set_property(mpv, "time-pos", MPV_FORMAT_DOUBLE, &time);
+}
+
+void Player::force_sync()
+{
+	syncmpv(true);
 }
