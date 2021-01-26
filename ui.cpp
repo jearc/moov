@@ -72,10 +72,12 @@ Layout calculate_layout(
 		lcurs += separator;
 		l.pp_but = calc_text_l(lcurs, y, l.major_padding, icon_font, PLAY_ICON);
 		lcurs += separator;
-		l.time = calc_text_l(lcurs, y, l.major_padding, text_font, "00:00:00 +59m");
+		l.time = calc_text_l(lcurs, y, l.major_padding, text_font, "00:00:00");
+		l.delay_indicator = calc_text_l(lcurs, y, l.major_padding, text_font, "+99h");
 		lcurs += separator;
-		l.sync_but = calc_text_l(lcurs, y, l.major_padding, text_font, "S");
-		l.canonize_but = calc_text_l(lcurs, y, l.major_padding, text_font, "C");
+		l.sync_but = calc_text_l(lcurs, y, l.major_padding, text_font, "Sync");
+		lcurs += separator;
+		l.canonize_but = calc_text_l(lcurs, y, l.major_padding, text_font, "Canonicalize");
 		lcurs += separator;
 
 		l.fullscr_but = calc_text_r(rcurs, y, l.major_padding, icon_font, FULLSCREEN_ICON);

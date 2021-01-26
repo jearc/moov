@@ -309,17 +309,17 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
-		auto time_str = std::stringstream{} << sec_to_timestr(info.c_time);
+		text(l.time, l.major_padding, text_font, sec_to_timestr(info.c_time).c_str());
 		if (!info.exploring)
 		{
 			uint32_t delay = std::round(abs(info.delay));
-			const char *unit = "s";
+			char unit = 's';
 			if (delay >= 60) {
-				unit = "m";
+				unit = 'm';
 				delay /= 60;
 			}
 			if (delay >= 60) {
-				unit = "h";
+				unit = 'h';
 				delay /= 60;
 				delay = std::max(delay, 99u);
 			}
@@ -327,16 +327,23 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 				ui.delay_indicator_sign = false;
 			else if (ui.delay_indicator_sign && info.delay > 0.1)
 				ui.delay_indicator_sign = true;
-			time_str << (ui.delay_indicator_sign ? "+" : "-") << delay << unit;
-		}
-		text(l.time, l.major_padding, text_font, time_str.str().c_str());
 
-		if (button(l.sync_but, l.major_padding, text_font, "S"))
+			std::stringstream indicator;
+			indicator << "+99h";
+			//indicator << (ui.delay_indicator_sign ? '+' : '-') << delay << unit;
+
+			ImVec2 text_size = calc_text_size(text_font, l.major_padding, indicator.str().c_str());
+			ImRect indicator_rect = l.delay_indicator;
+			indicator_rect.pos.x += indicator_rect.size.x - text_size.x;
+			text(indicator_rect, l.major_padding, text_font, indicator.str().c_str());
+		}
+
+		if (button(l.sync_but, l.major_padding, text_font, "Sync"))
 		{
 			p.force_sync();
 		}
 
-		if (button(l.canonize_but, l.major_padding, text_font, "C"))
+		if (button(l.canonize_but, l.major_padding, text_font, "Canonicalize"))
 		{
 			p.set_time(info.c_time - info.delay);		
 		}
