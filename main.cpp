@@ -329,8 +329,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 				ui.delay_indicator_sign = true;
 
 			std::stringstream indicator;
-			indicator << "+99h";
-			//indicator << (ui.delay_indicator_sign ? '+' : '-') << delay << unit;
+			indicator << (ui.delay_indicator_sign ? '+' : '-') << delay << unit;
 
 			ImVec2 text_size = calc_text_size(text_font, l.major_padding, indicator.str().c_str());
 			ImRect indicator_rect = l.delay_indicator;
@@ -368,8 +367,10 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		if (button(l.fullscr_but, l.major_padding, icon_font, fullscr_str))
 			toggle_fullscreen(sdl_win, ui);
 
+		int notch_duration = 5 * 60;
+
 		if (intersects_rect(l.seek_bar, in.mouse_state.pos)) {
-			if (in.scroll_up)
+			if (in.scroll_up && (l.seek_bar.size.x / (ui.seek_bar_scale * 1.3 / notch_duration)) >= 3)
 				ui.seek_bar_scale *= 1.3;
 			else if (in.scroll_down)
 				ui.seek_bar_scale /= 1.3;
@@ -385,6 +386,26 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			{l.seek_bar.pos, {seek_fill_bar_w, l.seek_bar.size.y}},
 			info.exploring ? decode_color("#ffaa00") : decode_color("#ffaa0088")
 		);
+
+		int pixels_per_notch = l.seek_bar.size.x / (ui.seek_bar_scale / notch_duration);
+		if (pixels_per_notch > 2) {
+			float x = l.seek_bar.pos.x + l.seek_bar.size.x / 4;
+			float y0 = l.seek_bar.pos.y + l.seek_bar.size.y / 2;
+			float y1 = l.seek_bar.pos.y + l.seek_bar.size.y;
+
+			ImGui::GetWindowDrawList()->AddLine({x, l.seek_bar.pos.y}, {x, y1}, decode_color("#000000"));
+
+			x = l.seek_bar.pos.x + l.seek_bar.size.x / 4 - pixels_per_notch;
+			while (x > l.seek_bar.pos.x) {
+				ImGui::GetWindowDrawList()->AddLine({x, y0}, {x, y1}, decode_color("#000000"));
+				x -= pixels_per_notch;
+			}
+			x = l.seek_bar.pos.x + l.seek_bar.size.x / 4 + pixels_per_notch;
+			while (x < l.seek_bar.pos.x + l.seek_bar.size.x) {
+				ImGui::GetWindowDrawList()->AddLine({x, y0}, {x, y1}, decode_color("#000000"));
+				x += pixels_per_notch;
+			}
+		}
 
 		auto mouse_rel_seek = in.mouse_state.pos - l.seek_bar.pos;
 		if (0 <= mouse_rel_seek.x && mouse_rel_seek.x <= l.seek_bar.size.x &&
