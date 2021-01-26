@@ -561,6 +561,8 @@ SDL_Window *init_window(float font_size)
 	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 	glewInit();
 
+	SDL_GL_SetSwapInterval(1);
+
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGui::StyleColorsClassic();
@@ -607,15 +609,7 @@ int main(int argc, char **argv)
 	UI_State ui;
 	ui.last_activity = std::chrono::steady_clock::now();
 
-	int64_t t_last = 0, t_now = 0;
 	while (1) {
-		SDL_Delay(1);
-		t_now = SDL_GetPerformanceCounter();
-		double delta = (t_now - t_last) / (double)SDL_GetPerformanceFrequency();
-		if (delta <= 1 / 165.0)
-			continue;
-		t_last = t_now;
-
 		bool queue_empty = false;
 		while (!queue_empty)
 		{
@@ -654,9 +648,13 @@ int main(int argc, char **argv)
 			w, h, 0
 		};
 		int flip_y = 1;
+
+		int block = 0;
+
 		mpv_render_param params[] = {
 			{ MPV_RENDER_PARAM_OPENGL_FBO, &mpfbo },
 			{ MPV_RENDER_PARAM_FLIP_Y, &flip_y },
+			{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
 			{ MPV_RENDER_PARAM_INVALID, nullptr }
 		};
 		mpv_render_context_render(mpv_ctx, params);
