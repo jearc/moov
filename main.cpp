@@ -38,23 +38,11 @@ void on_mpv_redraw(void *mpv_redraw)
 
 void toggle_fullscreen(SDL_Window *win, UI_State &ui)
 {
-	if (!ui.fullscreen) {
-		int x, y, w, h;
-		SDL_GetWindowSize(win, &w, &h);
-		SDL_GetWindowPosition(win, &x, &y);
-		ui.window_geometry.pos = ImVec2(x, y);
-		ui.window_geometry.size = ImVec2(w, h);
-
-		SDL_SetWindowBordered(win, SDL_FALSE);
-		SDL_SetWindowSize(win, 2560, 1440);
-		SDL_SetWindowPosition(win, 0, 0);
-	} else {
-		SDL_SetWindowBordered(win, SDL_TRUE);
-		SDL_SetWindowSize(win, ui.window_geometry.size.x, ui.window_geometry.size.y);
-		SDL_SetWindowPosition(win, ui.window_geometry.pos.x, ui.window_geometry.pos.y);
-	}
-	SDL_ShowCursor(SDL_ENABLE);
-	ui.fullscreen = !ui.fullscreen;
+	int mx, my;
+	SDL_GetGlobalMouseState(&mx, &my);
+	SDL_SetWindowFullscreen(win, SDL_GetWindowFlags(win) ^ SDL_WINDOW_FULLSCREEN_DESKTOP);
+	SDL_WarpMouseGlobal(mx, my);
+	ui.fullscreen = SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN_DESKTOP;
 }
 
 void move_window(SDL_Window *win, int dx, int dy)
