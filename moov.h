@@ -121,6 +121,8 @@ struct UI_State {
 	std::optional<time_point> initial_fullscreen_click;
 	std::optional<Mouse_State> left_down_on_nothing;
 	bool left_down_on_something = false;
+	time_point last_activity;
+	ImVec2 last_mouse_pos;
 };
 
 std::string sec_to_timestr(uint32_t seconds);

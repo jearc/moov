@@ -272,6 +272,9 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			r.pos.y <= v.y && v.y <= r.pos.y + r.size.y;
 	};
 
+	if (ui.last_mouse_pos != in.mouse_state.pos)
+		ui.last_activity = std::chrono::steady_clock::now();
+
 	ImGui::SetNextWindowPos(l.master_win.pos);
 	ImGui::SetNextWindowSize(l.master_win.size);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -286,7 +289,13 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
-	if (intersects_rect(l.ui_bg, in.mouse_state.pos))
+	bool display_ui = intersects_rect(l.ui_bg, in.mouse_state.pos)
+		|| std::chrono::steady_clock::now() - ui.last_activity < std::chrono::seconds(2);
+
+	if (ui.fullscreen && !display_ui)
+		ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+
+	if (display_ui)
 	{
 		rect(l.ui_bg, 0xbb000000);
 
@@ -450,6 +459,8 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 	ImGui::End();
 	ImGui::PopStyleVar(3);
+
+	ui.last_mouse_pos = in.mouse_state.pos;
 }
 
 Frame_Input get_sdl_input(SDL_Window *win)
@@ -565,6 +576,7 @@ int main(int argc, char **argv)
 	input_thread.detach();
 
 	UI_State ui;
+	ui.last_activity = std::chrono::steady_clock::now();
 
 	int64_t t_last = 0, t_now = 0;
 	while (1) {
