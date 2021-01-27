@@ -3,40 +3,7 @@ import struct
 import threading
 import queue
 import time
-
-
-def write(file, format, *args):
-	for i, c in enumerate(format):
-		if c == 'B':
-			file.write(struct.pack(f'=B', args[i]))
-		elif c == 's':
-			file.write(
-			    struct.pack(
-			        f'=I{len(args[i])}s', len(args[i]),
-			        bytes(args[i], encoding='utf-8')))
-		elif c == 'Q':
-			file.write(struct.pack('=Q', args[i]))
-		elif c == 'd':
-			file.write(struct.pack('=d', args[i]))
-		elif c == 'I':
-			file.write(struct.pack('=I', args[i]))
-
-
-def read(file, format):
-	data = []
-	for c in format:
-		if c == 'B':
-			data.append(int.from_bytes(file.read(1), 'little'))
-		elif c == 's':
-			length = int.from_bytes(file.read(4), 'little')
-			data.append(file.read(length).decode('utf-8'))
-		elif c == 'Q':
-			data.append(int.from_bytes(file.read(8), 'little'))
-		elif c == 'd':
-			data.append(struct.unpack('d', file.read(8))[0])
-		elif c == 'I':
-			data.append(int.from_bytes(file.read(4), 'little'))
-	return data
+import json
 
 
 class Moov:
@@ -44,7 +11,7 @@ class Moov:
 	def __init__(self):
 		self._status_request_counter = 0
 		self._proc = subprocess.Popen(
-		    ['./moov'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		    [r'C:\Users\James\Git\moov\x64\Debug\Moov.exe'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 		self._message_queue = queue.Queue()
 		self._control_queue = queue.Queue()
 		self._replies = dict()
@@ -52,40 +19,27 @@ class Moov:
 		self._reader_thread = threading.Thread(target=self._reader)
 		self._reader_thread.start()
 
-	def _read(self, format):
-		return read(self._proc.stdout, format)
-
-	def _write(self, format, *args):
-		write(self._proc.stdin, format, *args)
+	def _write(self, v):
+		self._proc.stdin.write(json.dumps(v).encode('utf-8'))
+		self._proc.stdin.write('\n'.encode('utf-8'))
 		self._proc.stdin.flush()
 
 	def _reader(self):
 		while self._proc and self._proc.poll() is None:
-			cmd = self._read("B")[0]
-			if cmd == 10:
-				data = self._read("QdB")
-				self._control_queue.put({
-					"pl_pos": data[0],
-					"time": data[1],
-					"paused": data[2]
-				})
-			if cmd == 4:
-				data = self._read("IQQdB")
+			line = self._proc.stdout.readline()
+			msg = json.loads(line)
+			if msg['type'] == 'control':
+				self._control_queue.put(msg)
+			if msg['type'] == 'status':
 				with self._replies_lock:
-					self._replies[data[0]] = {
-					    "pl_pos": data[1],
-					    "pl_count": data[2],
-					    "time": data[3],
-					    "paused": data[4]
-					}
-			if cmd == 5:
-				msg = self._read("s")[0]
-				self._message_queue.put(msg)
+					self._replies[msg['request_id']] = msg
+			if msg['type'] == 'user_input':
+				self._message_queue.put(msg['text'])
 
 	def _request_status(self):
 		request_id = self._status_request_counter
 		self._status_request_counter += 1
-		self._write('BI', 8, request_id)
+		self._write({'type': 'request_status', 'request_id': request_id})
 		return request_id
 
 	def _await_reply(self, request_id):
@@ -104,35 +58,40 @@ class Moov:
 		return self._proc and self._proc.poll() is None
 
 	def put_message(self, message, fg_color, bg_color):
-		self._write('BIIs', 3, fg_color, bg_color, message)
+		self._write({
+			'type': 'message',
+			'bg_color': bg_color,
+			'fg_color': fg_color,
+			'message': message
+		})
 
 	def index(self, position):
-		self._write('BQ', 7, position)
+		self._write({'type': 'set_playlist_position', 'position': position})
 
 	def previous(self):
-		pl_pos = self.get_status()['pl_pos']
+		pl_pos = self.get_status()['playlist_position']
 		if pl_pos - 1 >= 0:
 			self.index(pl_pos - 1)
 
 	def next(self):
 		status = self.get_status()
-		pl_pos = status['pl_pos']
-		pl_count = status['pl_count']
+		pl_pos = status['playlist_position']
+		pl_count = status['playlist_count']
 		if pl_pos + 1 < pl_count:
 			self.index(pl_pos + 1)
 
 	def append(self, path):
-		self._write('Bs', 6, path)
+		self._write({'type': 'add_file', 'file_path': path})
 
 	def set_paused(self, paused):
-		self._write('BB', 1, int(paused))
+		self._write({'type': 'pause', 'paused': paused})
 
 	def toggle_paused(self):
 		paused = self.get_status()['paused']
 		self.set_paused(not paused)
 
 	def seek(self, time):
-		self._write('Bd', 2, time)
+		self._write({'type': 'seek', 'time': time})
 
 	def relative_seek(self, time_delta):
 		time = self.get_status()['time']
@@ -153,5 +112,5 @@ class Moov:
 		return controls
 
 	def close(self):
-		self._write('B', 9)
+		self._write({'type': 'close'})
 		self._reader_thread.join()
