@@ -557,7 +557,8 @@ Frame_Input get_sdl_input(SDL_Window *win)
 
 int main(int argc, char **argv)
 {
-	float font_size = 30;
+	float font_size;
+
 	SDL_Window *window;
 	{
 		if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -583,6 +584,11 @@ int main(int argc, char **argv)
 		ImGui::StyleColorsClassic();
 		ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 		ImGui_ImplOpenGL3_Init("#version 150");
+
+		float vdpi;
+		int err = SDL_GetDisplayDPI(0, nullptr, nullptr, &vdpi);
+		const char *errstr = SDL_GetError();
+		font_size = vdpi / 3;
 
 		ImGuiIO &io = ImGui::GetIO();
 
