@@ -203,9 +203,9 @@ void chatbox(Chat &c, UI_State &ui, Layout &l)
 
 	auto e = c.get_last_end_scroll_time();
 	auto n = std::chrono::steady_clock::now();
-	for (auto it = messages.rbegin(); it != messages.rend(); it++)
+	for (int i = messages.second - 1; i >= 0; i--)
 	{
-		auto &msg = *it;
+		auto &msg = messages.first[i];
 
 		double opacity;
 		{

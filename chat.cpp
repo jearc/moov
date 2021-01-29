@@ -8,10 +8,10 @@ void Chat::add_message(const Message &m)
   cursor = log.size();
 }
 
-std::span<Message> Chat::messages()
+std::pair<Message *, size_t> Chat::messages()
 {
   if (log.size() == 0)
-    return {};
+    return {nullptr, 0};
   return { &log[0], cursor };
 }
 

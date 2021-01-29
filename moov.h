@@ -34,7 +34,7 @@ struct Message {
 struct Chat {
 
 	void add_message(const Message &m);
-	std::span<Message> messages();
+	std::pair<Message *, size_t> messages();
 	void scroll_up();
 	void scroll_down();
 	time_point get_last_end_scroll_time();
