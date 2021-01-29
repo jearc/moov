@@ -2,7 +2,6 @@
 
 #include <string>
 #include <vector>
-#include <span>
 #include <chrono>
 #include <optional>
 #include <mpv/client.h>

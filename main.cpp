@@ -14,6 +14,7 @@
 #include <charconv>
 #include <algorithm>
 #include <filesystem>
+#include <thread>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
@@ -296,7 +297,8 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
-		auto pl_status = std::stringstream{} << (info.pl_pos + 1) << "/" << info.pl_count;
+        std::stringstream pl_status;
+		pl_status << (info.pl_pos + 1) << "/" << info.pl_count;
 		text(l.pl_status, l.major_padding, text_font, pl_status.str().c_str());
 
 		if (button(ui, in, l.next_but, l.minor_padding, icon_font, PLAYLIST_NEXT_ICON)) {
@@ -355,13 +357,15 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		if (button(ui, in, l.audio_but, l.major_padding))
 			p.set_audio(info.audio_pos + 1);
 		text(l.audio_icon, l.minor_padding, icon_font, AUDIO_ICON);
-		auto audio_status = std::stringstream{} << " " << info.audio_pos << "/" << info.audio_count;
+        std::stringstream audio_status;
+		audio_status << " " << info.audio_pos << "/" << info.audio_count;
 		text(l.audio_status, l.minor_padding, text_font, audio_status.str().c_str());
 
 		if (button(ui, in, l.sub_but, l.major_padding))
 			p.set_audio(info.sub_pos + 1);
 		text(l.sub_icon, l.minor_padding, icon_font, SUBTITLE_ICON);
-		auto sub_status = std::stringstream{} << " " << info.sub_pos << "/" << info.sub_count;
+        std::stringstream sub_status;
+		sub_status << " " << info.sub_pos << "/" << info.sub_count;
 		text(l.sub_status, l.minor_padding, text_font, sub_status.str().c_str());
 
 		auto mute_str = info.muted ? MUTED_ICON : UNMUTED_ICON;
@@ -420,7 +424,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			int point = mouse_rel_seek.x - zero_point;
 
 			float time = point / l.seek_bar.size.x * ui.seek_bar_scale;
-			auto indicator_text = std::stringstream{};
+            std::stringstream indicator_text;
 			if (time < 0) {
 				indicator_text << "-" << sec_to_timestr(-std::round(time));
 			} else {

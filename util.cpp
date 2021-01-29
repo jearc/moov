@@ -18,10 +18,11 @@ void die(std::string_view str)
 
 std::string sec_to_timestr(uint32_t sec)
 {
-	auto ss = std::stringstream{} << std::setfill('0')
-		<< std::setw(2) << (sec / 3600) << ":"
-		<< std::setw(2) << ((sec % 3600) / 60) << ":"
-		<< std::setw(2) << (sec % 60);
+    std::stringstream ss;
+	ss << std::setfill('0')
+	   << std::setw(2) << (sec / 3600) << ":"
+	   << std::setw(2) << ((sec % 3600) / 60) << ":"
+	   << std::setw(2) << (sec % 60);
 
 	return ss.str();
 }

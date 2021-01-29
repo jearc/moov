@@ -21,6 +21,11 @@ bool operator==(const ImVec2 &a, const ImVec2 &b)
 	return a.x == b.x && a.y == b.y;
 }
 
+bool operator!=(const ImVec2 &a, const ImVec2 &b)
+{
+	return !(a == b);
+}
+
 ImVec2 calc_text_size(ImFont *font, ImVec2 padding, const char *text)
 {
 	ImGui::PushFont(font);
