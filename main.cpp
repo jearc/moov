@@ -13,6 +13,7 @@
 #include <string_view>
 #include <charconv>
 #include <algorithm>
+#include <filesystem>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
@@ -129,6 +130,13 @@ void handle_instruction(Player &p, Chat &c, json &j)
 	{
 		int64_t pos = j.at("position");
 		p.set_pl_pos(pos);
+	}
+	else if (type == "set_canonical")
+	{
+		int64_t pos = j.at("playlist_position");
+		bool paused = j.at("paused");
+		double time = j.at("time");
+		p.set_canonical(pos, paused, time);
 	}
 	else if (type == "request_status")
 	{
@@ -339,7 +347,9 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 		if (button(ui, in, l.canonize_but, l.major_padding, text_font, "Canonicalize"))
 		{
-			p.set_time(info.c_time - info.delay);		
+			p.set_time(info.c_time - info.delay);
+			info = p.get_info();
+			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
 		if (button(ui, in, l.audio_but, l.major_padding))
@@ -541,52 +551,69 @@ Frame_Input get_sdl_input(SDL_Window *win)
 	return in;
 }
 
-SDL_Window *init_window(float font_size)
-{
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
-		die("SDL init failed");
-	SDL_GL_SetAttribute(
-		SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-	SDL_GL_SetAttribute(
-		SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-	SDL_Window *window = SDL_CreateWindow("Moov", SDL_WINDOWPOS_CENTERED,
-		SDL_WINDOWPOS_CENTERED, 1280, 720,
-		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-	SDL_GL_CreateContext(window);
-	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
-	glewInit();
-
-	SDL_GL_SetSwapInterval(1);
-
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGui::StyleColorsClassic();
-	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-	ImGui_ImplOpenGL3_Init("#version 150");
-
-	ImGuiIO &io = ImGui::GetIO();
-	text_font = io.Fonts->AddFontFromFileTTF(
-		"Roboto-Medium.ttf",
-		font_size);
-
-	static const ImWchar icons_ranges[] = { 0xe000, 0xeb4c, 0 };
-	ImFontConfig icons_config;
-	icons_config.PixelSnapH = true;
-	icon_font = io.Fonts->AddFontFromFileTTF(
-		"MaterialIcons-Regular.ttf", font_size, &icons_config, icons_ranges);
-
-	return window;
-}
-
 int main(int argc, char **argv)
 {
 	float font_size = 30;
-	SDL_Window *window = init_window(font_size);
+	SDL_Window *window;
+	{
+		if (SDL_Init(SDL_INIT_VIDEO) < 0)
+			die("SDL init failed");
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+		window = SDL_CreateWindow("Moov", SDL_WINDOWPOS_CENTERED,
+			SDL_WINDOWPOS_CENTERED, 1280, 720,
+			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+		SDL_GL_CreateContext(window);
+		SDL_GLContext gl_context = SDL_GL_CreateContext(window);
+		glewInit();
+
+		SDL_GL_SetSwapInterval(1);
+
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGui::StyleColorsClassic();
+		ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+		ImGui_ImplOpenGL3_Init("#version 150");
+
+		ImGuiIO &io = ImGui::GetIO();
+
+		auto exe_dir = std::filesystem::absolute(argv[0]).parent_path();
+		auto cwd = std::filesystem::current_path();
+
+		auto find_file = [&](const char *font) {
+			std::filesystem::path lookup_dirs[] = {
+				exe_dir,
+				exe_dir.parent_path() / "share" / "moov",
+				cwd
+			};
+			for (auto &dir : lookup_dirs)
+				if (std::filesystem::is_regular_file(dir / font))
+					return std::optional(dir / font);
+			return std::optional<std::filesystem::path>();
+		};
+
+		auto text_font_path = find_file("Roboto-Medium.ttf");
+		if (text_font_path.has_value())
+			text_font = io.Fonts->AddFontFromFileTTF(text_font_path->string().c_str(), font_size);
+		else
+			die("could not find text font");
+
+		auto icon_font_path = find_file("MaterialIcons-Regular.ttf");
+		if (icon_font_path.has_value()) {
+			static const ImWchar icons_ranges[] = { 0xe000, 0xeb4c, 0 };
+			ImFontConfig icons_config;
+			icons_config.PixelSnapH = true;
+			icon_font = io.Fonts->AddFontFromFileTTF(icon_font_path->string().c_str(), font_size, &icons_config, icons_ranges);
+		} else {
+			die("could not find icon font");
+		}
+	}
+
 	auto mpvh = Player();
 
 	mpv_render_context *mpv_ctx;
