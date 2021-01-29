@@ -588,7 +588,7 @@ int main(int argc, char **argv)
 		float vdpi;
 		int err = SDL_GetDisplayDPI(0, nullptr, nullptr, &vdpi);
 		const char *errstr = SDL_GetError();
-		font_size = vdpi / 3;
+		font_size = vdpi / 5;
 
 		ImGuiIO &io = ImGui::GetIO();
 
