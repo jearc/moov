@@ -29,6 +29,9 @@ Player::Player()
 	mpv = mpv_create();
 	mpv_initialize(mpv);
 	mpv_set_option_string(mpv, "ytdl", "yes");
+#ifdef __linux__ 
+	mpv_set_option_string(mpv, "input-ipc-server", "/tmp/mpvsocket");
+#endif
 
 	last_time = mpv_get_time_us(mpv);
 	c_pos = 0;
