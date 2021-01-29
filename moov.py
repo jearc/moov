@@ -11,7 +11,7 @@ class Moov:
 	def __init__(self):
 		self._status_request_counter = 0
 		self._proc = subprocess.Popen(
-		    [r'C:\Users\James\Git\moov\x64\Debug\Moov.exe'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		    ['moov'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 		self._message_queue = queue.Queue()
 		self._control_queue = queue.Queue()
 		self._replies = dict()
