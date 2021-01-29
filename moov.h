@@ -69,6 +69,7 @@ public:
 	void pause(int paused);
 	void toggle_explore_paused();
 	PlayerInfo get_info();
+	void set_canonical(int64_t pl_pos, bool paused, double time);
 	void set_time(double time);
 	void set_pl_pos(int64_t pl_pos);
 	void set_explore_time(double time);

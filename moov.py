@@ -83,6 +83,14 @@ class Moov:
 	def append(self, path):
 		self._write({'type': 'add_file', 'file_path': path})
 
+	def set_canonical(self, playlist_position, paused, time):
+		self._write({
+			'type': 'set_canonical',
+			'playlist_position': playlist_position,
+			'paused': paused,
+			'time': time
+		})
+
 	def set_paused(self, paused):
 		self._write({'type': 'pause', 'paused': paused})
 

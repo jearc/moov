@@ -244,6 +244,14 @@ void Player::set_pl_pos(int64_t pl_pos)
 	syncmpv();
 }
 
+void Player::set_canonical(int64_t pl_pos, bool paused, double time)
+{
+	c_pos = pl_pos;
+	c_paused = paused;
+	c_time = time;
+	syncmpv();
+}
+
 void Player::toggle_explore_paused()
 {
 	assert(exploring);
