@@ -27,12 +27,12 @@ install: all
 
 installgajim:
 	@echo 'Installing moov plugin for Gajim'
-	@mkdir -p ~/.local/share/gajim/plugins/moov
-	@cp -f contrib/moovgajim/manifest.ini ~/.local/share/gajim/plugins/moov
-	@cp -f contrib/moovgajim/__init__.py ~/.local/share/gajim/plugins/moov
-	@cp -f contrib/moovgajim/moovdb.py ~/.local/share/gajim/plugins/moov
-	@cp -f contrib/moovgajim/plugin.py ~/.local/share/gajim/plugins/moov
-	@cp -f moov.py ~/.local/share/gajim/plugins/moov
+	@mkdir -p ~/.local/share/gajim/plugins/moovgajim
+	@cp -f contrib/moovgajim/manifest.ini ~/.local/share/gajim/plugins/moovgajim
+	@cp -f contrib/moovgajim/__init__.py ~/.local/share/gajim/plugins/moovgajim
+	@cp -f contrib/moovgajim/moovdb.py ~/.local/share/gajim/plugins/moovgajim
+	@cp -f contrib/moovgajim/plugin.py ~/.local/share/gajim/plugins/moovgajim
+	@cp -f moov.py ~/.local/share/gajim/plugins/moovgajim
 
 uninstall:
 	@echo 'Removing moov from /usr/local/bin.'
