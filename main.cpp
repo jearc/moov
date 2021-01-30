@@ -598,7 +598,7 @@ int main(int argc, char **argv)
 		auto find_file = [&](const char *font) {
 			std::filesystem::path lookup_dirs[] = {
 				exe_dir,
-				exe_dir / ".." / "share" / "moov",
+				"/usr/local/share/moov",
 				cwd
 			};
 			for (auto &dir : lookup_dirs)
