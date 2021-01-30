@@ -160,7 +160,7 @@ class MoovPlugin(GajimPlugin):
 					conv.send('error: invalid args')
 
 				def cb(info):
-					(index, session, dupe) = self.db.add(info, time)
+					(index, session, dupe) = self.db.add_url(info, time)
 					prefix = 'already have ' if dupe else 'added '
 					text = prefix + moovdb.format_session_text(index, session)
 					xhtml = prefix + moovdb.format_session_html(index, session)
@@ -177,7 +177,7 @@ class MoovPlugin(GajimPlugin):
 
 			def cb(info):
 				if self.db is not None:
-					(index, session, dupe) = self.db.add(info, time)
+					(index, session, dupe) = self.db.add_url(info, time)
 					self.db.set_top(index)
 				self.video_url = info['url']
 				self.conv = conv
