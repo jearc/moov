@@ -75,7 +75,7 @@ class MoovPlugin(GajimPlugin):
 			'message-sent': (ged.PREGUI, self._on_message_sent),
 		}
 		db_path = Path(configpaths.get('PLUGINS_DATA')) / 'moov' / 'db.json'
-		# self.db = moovdb.MoovDB(db_path)
+		self.db = moovdb.MoovDB(db_path)
 
 	def _on_message_received(self, event):
 		if not event.msgtxt:
