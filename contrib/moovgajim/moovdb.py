@@ -114,7 +114,7 @@ class MoovDB:
             self._save()
 
     def top(self):
-        return self._db[-1]
+        return self._db[-1] if len(self._db) != 0 else None
 
     def pop(self, indices):
         if len(indices) == 0:

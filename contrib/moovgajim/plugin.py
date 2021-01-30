@@ -214,13 +214,14 @@ class MoovPlugin(GajimPlugin):
 					except:
 						return
 				session = self.db.top()
-				self.conv = conv
-				self.open_moov()
-				self.video_url = session['video_info']['url']
-				self.moov.append(self.video_url)
-				self.moov.seek(session['time'])
-				self.conv.send(f'.o {self.video_url} {format_time(session["time"])}')
-				self.send_message(format_status(self.moov.get_status()))
+				if session is not None:
+					self.conv = conv
+					self.open_moov()
+					self.video_url = session['video_info']['url']
+					self.moov.append(self.video_url)
+					self.moov.seek(session['time'])
+					self.conv.send(f'.o {self.video_url} {format_time(session["time"])}')
+					self.send_message(format_status(self.moov.get_status()))
 		elif tokens[0] == '.re':
 			if self.db is not None and alive:
 				time_str = format_time(self.moov.get_status()['time'])
