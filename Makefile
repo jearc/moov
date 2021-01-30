@@ -7,7 +7,7 @@ LIBS = -lGL -ldl -lSDL2 -lmpv -lGLEW -lGLU
 
 all: moov
 
-moov: 
+moov:
 	g++ -std=c++2a main.cpp mpvh.cpp util.cpp ui.cpp chat.cpp imgui/imgui_impl_sdl.cpp imgui/imgui.cpp imgui/imgui_draw.cpp imgui/imgui_impl_opengl3.cpp imgui/imgui_widgets.cpp -o moov -lGL -ldl -lSDL2 -lmpv -lGLEW -lGLU -lm -lpthread
 
 clean:
@@ -25,8 +25,21 @@ install: all
 	@echo 'Installing fonts to /usr/local/share/moov.'
 	@cp -f Roboto-Medium.ttf MaterialIcons-Regular.ttf /usr/local/share/moov
 
-uninstall: all
+installgajim: all
+	@echo 'Installing moov plugin for Gajim'
+	@mkdir -p ~/.local/share/gajim/plugins/moov
+	@cp -f contrib/moovgajim/manifest.ini ~/.local/share/gajim/plugins/moov
+	@cp -f contrib/moovgajim/__init__.py ~/.local/share/gajim/plugins/moov
+	@cp -f contrib/moovgajim/moovdb.py ~/.local/share/gajim/plugins/moov
+	@cp -f contrib/moovgajim/plugin.py ~/.local/share/gajim/plugins/moov
+	@cp -f moov.py ~/.local/share/gajim/plugins/moov
+
+uninstall:
 	@echo 'Removing moov from /usr/local/bin.'
 	@rm -f /usr/local/bin/moov
 	@echo 'Removing moov directory from /usr/local/share.'
 	@rm -rf /usr/local/share/moov
+
+uninstallgajim:
+	@echo 'Removing moov plugin for Gajim'
+	@rm -rf ~/.local/share/gajim/plugins/moov
