@@ -120,5 +120,6 @@ class Moov:
 		return controls
 
 	def close(self):
-		self._write({'type': 'close'})
-		self._reader_thread.join()
+		if self.alive():
+			self._write({'type': 'close'})
+			self._reader_thread.join()
