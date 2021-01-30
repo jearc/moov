@@ -22,8 +22,8 @@ install: all
 	@cp -f moov /usr/local/bin
 	@chmod 755 /usr/local/bin/moov
 	@mkdir -p /usr/local/share/moov
-	@echo 'Installing fonts to /usr/local/share/moov.'
-	@cp -f Roboto-Medium.ttf MaterialIcons-Regular.ttf /usr/local/share/moov
+	@echo 'Installing assets to /usr/local/share/moov.'
+	@cp -f Roboto-Medium.ttf MaterialIcons-Regular.ttf icon.png /usr/local/share/moov
 
 installgajim:
 	@echo 'Installing moov plugin for Gajim'

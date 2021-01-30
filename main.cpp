@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <mpv/render.h>
 #include <mpv/render_gl.h>
 #include <vector>
@@ -621,6 +622,12 @@ int main(int argc, char **argv)
 			icon_font = io.Fonts->AddFontFromFileTTF(icon_font_path->string().c_str(), font_size, &icons_config, icons_ranges);
 		} else {
 			die("could not find icon font");
+		}
+
+		auto program_icon_path = find_file("icon.png");
+		if (icon_font_path.has_value()) {
+			SDL_Surface *icon_image = IMG_Load(program_icon_path->string().c_str());
+			SDL_SetWindowIcon(window, icon_image);
 		}
 	}
 
