@@ -42,4 +42,4 @@ uninstall:
 
 uninstallgajim:
 	@echo 'Removing moov plugin for Gajim'
-	@rm -rf ~/.local/share/gajim/plugins/moov
+	@rm -rf ~/.local/share/gajim/plugins/moovgajim
