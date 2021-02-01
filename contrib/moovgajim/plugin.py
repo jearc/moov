@@ -316,7 +316,7 @@ class MoovPlugin(GajimPlugin):
 			self.open_moov()
 			self.session_id = session['id']
 			if session['type'] == 'url':
-				self.moov.append(self.video_url)
+				self.moov.append(session['video_info']['url'])
 				self.moov.seek(session['time'])
 				self.send_message(conv, f'.o {self.video_url} {format_time(session["time"])}')
 				self.send_message(conv, format_status(self.moov.get_status()))
