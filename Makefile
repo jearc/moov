@@ -32,6 +32,7 @@ installgajim:
 	@cp -f contrib/moovgajim/__init__.py ~/.local/share/gajim/plugins/moovgajim
 	@cp -f contrib/moovgajim/moovdb.py ~/.local/share/gajim/plugins/moovgajim
 	@cp -f contrib/moovgajim/plugin.py ~/.local/share/gajim/plugins/moovgajim
+	@cp -f contrib/moovgajim/config_dialog.py ~/.local/share/gajim/plugins/moovgajim
 	@cp -f moov.py ~/.local/share/gajim/plugins/moovgajim
 
 uninstall:
