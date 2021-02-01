@@ -17,6 +17,8 @@ def download_info(url):
     }
 
 def video_search(directory, keywords):
+    if not os.path.isdir(directory):
+        return None
     video_filetypes = ["mp4", "mkv", "avi", "ogm"]
     videos = []
     for root, subdirs, files in os.walk(directory):
@@ -159,6 +161,12 @@ class MoovDB:
             if s['id'] == id:
                 return i
         return None
+
+    def get_session(self, id):
+        index = self.index_of_id(id)
+        if index is None:
+            return None
+        return self._db[index]
 
     def update_session(self, session_id, playlist_position, time):
         index = self.index_of_id(session_id)

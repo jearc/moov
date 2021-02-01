@@ -17,30 +17,13 @@ import moovgajim.moovdb as moovdb
 from moovgajim.config_dialog import MoovConfigDialog
 import os
 
-lor_pattern = re.compile('\s*"([^"]+)"\s+(\d+)\s+(\d+:\d+(:\d+))')
+lor_pattern = re.compile(r'^\s*"([^"]+)"\s+(\d+)\s+((\d+:)?(\d+:)?\d+)\s*$')
+set_pattern = re.compile(r'^\s*(\d+)\s+(paused|playing)\s+((\d+:)?(\d+:)?\d+)\s*$')
 
 def parse_time(string):
 	ns = re.findall(r'-?\d+', string)
 	return reduce(lambda t, n: 60*t + int(n), ns[:3], 0)
 
-
-def parse_set(string):
-	parts = string.split()
-	return {
-		'playlist_position': int(parts[0]) - 1,
-		'paused':  parts[1] == 'paused',
-		'time':  parse_time(parts[2])
-	}
-
-def parse_lor(string):
-	match = lor_pattern.match(string)
-	if match is None:
-		return None
-	return {
-		'search': match.group(1),
-		'playlist_position': int(match.group(2)) - 1,
-		'time': parse_time(match.group(3))
-	}
 
 def format_time(time):
 	s = int(round(time))
@@ -56,6 +39,17 @@ def format_status(status):
 	delay = round(status['delay'])
 	delay_str = f'{"-" if delay > 0 else "+"}{abs(delay)}'
 	return f'{playlist} {paused} {time} {delay_str}'
+
+
+def convert_color(rgba_str):
+	r = Gdk.RGBA()
+	r.parse(rgba_str)
+	return '#%02x%02x%02x%02x' % (
+		round(r.red * 255),
+		round(r.green * 255),
+		round(r.blue * 255),
+		round(r.alpha * 255)
+	)
 
 
 class Conversation:
@@ -138,79 +132,41 @@ class MoovPlugin(GajimPlugin):
 		self.relay_message(event.message, True)
 		self.handle_command(conv, event.message)
 
-	def send_message(self, body):
-		def f(body):
-			self.conv.send(body)
-			self.relay_message(body, True)
-			self.handle_command(self.conv, body)
-		GLib.idle_add(f, body)
+	def send_message(self, conv, text, xhtml=None, command=False):
+		conv.send(text, xhtml=xhtml)
+		self.relay_message(text)
+		if command:
+			self.handle_command(conv, text)
 
 	def handle_command(self, conv, message):
 		tokens = message.split()
 
 		alive = self.moov is not None and self.moov.alive()
+		db_enabled = self.db is not None
 
-		if tokens[0] == '.status':
-			if alive:
-				self.send_message(format_status(self.moov.get_status()))
-			else:
-				conv.send('nothing playing')
-		elif tokens[0] == 'pp':
-			if alive:
-				self.moov.toggle_paused()
-				self.send_message(format_status(self.moov.get_status()))
-				self.update_db()
-		elif message[0:6] == '.seek ':
-			if alive:
-				self.moov.seek(parse_time(message[6:]))
-				self.send_message(format_status(self.moov.get_status()))
-				self.update_db()
-		elif message[0:7] == '.seek+ ':
-			if alive:
-				self.moov.relative_seek(parse_time(message[7:]))
-				self.send_message(format_status(self.moov.get_status()))
-				self.update_db()
-		elif message[0:7] == '.seek- ':
-			if alive:
-				self.moov.relative_seek(-parse_time(message[7:]))
-				self.send_message(format_status(self.moov.get_status()))
-				self.update_db()
-		elif message[0:5] == '.set ':
-			if alive:
-				try:
-					args = parse_set(message[5:])
-					self.moov.set_canonical(args['playlist_position'], args['paused'], args['time'])
-					self.send_message(format_status(self.moov.get_status()))
-					self.update_db()
-				except:
-					conv.send('error: invalid args')
-		elif tokens[0] == '.close':
-			if alive:
-				self.update_db()
-				self.kill_moov()
-		elif tokens[0] == '.add':
-			if self.db is not None:
-				try:
-					url = tokens[1]
-					time = 0 if len(tokens) < 3 else parse_time(tokens[2])
-				except:
-					conv.send('error: invalid args')
-
-				def cb(info):
-					(index, session, dupe) = self.db.add_url(info, time)
-					prefix = 'already have ' if dupe else 'added '
-					text = prefix + moovdb.format_session_text(index, session)
-					xhtml = prefix + moovdb.format_session_html(index, session)
-					conv.send(text, xhtml=xhtml)
-
-				download_thread = Thread(target=self.download_info, args=[url, cb, conv])
-				download_thread.start()
-		elif tokens[0] == '.o':
+		if tokens[0] == '.add' and db_enabled:
 			try:
 				url = tokens[1]
 				time = 0 if len(tokens) < 3 else parse_time(tokens[2])
 			except:
 				conv.send('error: invalid args')
+
+			def cb(info):
+				(index, session, dupe) = self.db.add_url(info, time)
+				prefix = 'already have ' if dupe else 'added '
+				text = prefix + moovdb.format_session_text(index, session)
+				xhtml = prefix + moovdb.format_session_html(index, session)
+				conv.send(text, xhtml=xhtml)
+				self.relay_message(text)
+
+			download_thread = Thread(target=self.download_info, args=[url, cb, conv])
+			download_thread.start()
+		elif tokens[0] == '.o':
+			try:
+				url = tokens[1]
+				time = 0 if len(tokens) < 3 else parse_time(tokens[2])
+			except:
+				self.send_message(conv, 'error: invalid args')
 
 			def cb(info):
 				if self.db is not None:
@@ -220,34 +176,38 @@ class MoovPlugin(GajimPlugin):
 				self.open_moov()
 				self.moov.append(url)
 				self.moov.seek(time)
-				self.send_message(format_status(self.moov.get_status()))
+				self.send_message(conv, format_status(self.moov.get_status()))
 
 			download_thread = Thread(target=self.download_info, args=[url, cb, conv])
 			download_thread.start()
-		elif tokens[0] == '.ladd':
-			if self.db is None:
-				return
-
-			if not os.path.isdir(self.config['VIDEO_DIR']):
-				conv.send('error: no video directory set')
-				return
-
+		elif tokens[0] == '.ladd' and db_enabled:
 			search = message[6:]
 
 			results = moovdb.video_search(self.config['VIDEO_DIR'], search)
+			if results is None:
+				self.send_message(conv, 'error: no video directory set')
+				return
 			if len(results) == 0:
-				conv.send('no matches found')
+				self.send_message(conv, 'no matches found')
 				return
 
 			(index, session, dupe) = self.db.add_search(search, len(results))
 			self.db.set_top(index)
 			text = "added " + moovdb.format_session_text(index, session)
 			xhtml = "added " + moovdb.format_session_html(index, session)
-			conv.send(text, xhtml=xhtml)
-
+			self.send_message(conv, text, xhtml=xhtml)
 		elif tokens[0] == '.lor':
-			lor = parse_lor(message[5:])
-			results = moovdb.video_search(self.config['VIDEO_DIR'], lor['search'])
+			match = lor_pattern.match(message[5:])
+			if match is None:
+				self.send_message(conv, 'error: invalid args')
+				return
+			search = match.group(1)
+			playlist_position = int(match.group(2)) - 1
+			time = parse_time(match.group(3))
+			results = moovdb.video_search(self.config['VIDEO_DIR'], search)
+			if results is None:
+				self.send_message(conv, 'error: no video directory set')
+				return
 			if len(results) == 0:
 				conv.send('no matches found')
 				return
@@ -255,40 +215,36 @@ class MoovPlugin(GajimPlugin):
 			self.open_moov()
 			for video_file in results:
 				self.moov.append(video_file)
-			self.moov.index(lor['playlist_position'])
-			self.moov.seek(lor['time'])
-			self.send_message(format_status(self.moov.get_status()))
-		elif tokens[0] == '.list':
-			if self.db is not None:
-				session_list = self.db.list()
-				if len(session_list) != 0:
-					text = moovdb.format_sessions_text(self.db.list())
-					xhtml = moovdb.format_sessions_html(self.db.list())
-					conv.send(text, xhtml=xhtml)
-				else:
-					conv.send('no sessions')
-		elif tokens[0] == '.pop':
-			indices = tokens[1:]
-			if self.db is not None:
-				for i in range(len(indices)):
-					indices[i] = int(indices[i])
-				if len(indices) == 0 and self.moov is not None and self.moov.playing():
-					indices.append(self.db.index_of_id(self.session_id))
-					self.kill_moov()
-				self.db.pop(indices)
-				if len(self.db.list()) != 0:
-					text = moovdb.format_sessions_text(self.db.list())
-					xhtml = moovdb.format_sessions_html(self.db.list())
-					conv.send(text, xhtml=xhtml)
-				else:
-					conv.send('database empty')
+			self.moov.index(playlist_position)
+			self.moov.seek(time)
+			self.send_message(conv, format_status(self.moov.get_status()))
+		elif tokens[0] == '.list' and db_enabled:
+			session_list = self.db.list()
+			if len(session_list) != 0:
+				text = moovdb.format_sessions_text(self.db.list())
+				xhtml = moovdb.format_sessions_html(self.db.list())
+				self.send_message(conv, text, xhtml=xhtml)
 			else:
-				if len(indices) == 0 and moov is not None and moov.playing():
-					self.kill_moov()
-		elif tokens[0] == '.resume':
-			if self.db is None:
-				return
-
+				self.send_message(conv, 'no sessions')
+		elif tokens[0] == '.pop' and db_enabled:
+			indices = tokens[1:]
+			for i in range(len(indices)):
+				indices[i] = int(indices[i])
+			if len(indices) == 0 and alive:
+				indices.append(self.db.index_of_id(self.session_id))
+				self.kill_moov()
+			self.db.pop(indices)
+			if len(self.db.list()) != 0:
+				text = moovdb.format_sessions_text(self.db.list())
+				xhtml = moovdb.format_sessions_html(self.db.list())
+				self.send_message(conv, text, xhtml=xhtml)
+			else:
+				self.send_message(conv, 'database empty')
+		elif tokens[0] == '.pop' and not db_enabled:
+			indices = tokens[1:]
+			if len(indices) == 0 and alive:
+				self.kill_moov()
+		elif tokens[0] == '.resume' and db_enabled:
 			if len(tokens) >= 2:
 				try:
 					self.db.set_top(int(tokens[1]))
@@ -305,8 +261,8 @@ class MoovPlugin(GajimPlugin):
 			if session['type'] == 'url':
 				self.moov.append(self.video_url)
 				self.moov.seek(session['time'])
-				self.conv.send(f'.o {self.video_url} {format_time(session["time"])}')
-				self.send_message(format_status(self.moov.get_status()))
+				self.send_message(conv, f'.o {self.video_url} {format_time(session["time"])}')
+				self.send_message(conv, format_status(self.moov.get_status()))
 			elif session['type'] == 'search':
 				results = moovdb.video_search(self.config['VIDEO_DIR'], session['search'])
 				if len(results) == 0 or len(results) != session['playlist_count']:
@@ -317,27 +273,68 @@ class MoovPlugin(GajimPlugin):
 					self.moov.append(video_file)
 				self.moov.index(session['playlist_position'])
 				self.moov.seek(session['time'])
-				self.conv.send(f'.lor "{session["search"]}" {session["playlist_position"]+1} {format_time(session["time"])}')
-				self.send_message(format_status(self.moov.get_status()))
+				self.send_message(conv, f'.lor "{session["search"]}" {session["playlist_position"]+1} {format_time(session["time"])}')
+				self.send_message(conv, format_status(self.moov.get_status()))
+		elif tokens[0] == '.status' and alive:
+			self.send_message(conv, format_status(self.moov.get_status()))
+		elif tokens[0] == '.status' and not alive:
+			self.send_message(conv, 'nothing playing')
+		elif tokens[0] == 'pp' and alive:
+			self.moov.toggle_paused()
+			self.send_message(conv, format_status(self.moov.get_status()))
+			self.update_db()
+		elif tokens[0] == '.seek' and alive:
+			self.moov.seek(parse_time(message[6:]))
+			self.send_message(conv, format_status(self.moov.get_status()))
+			self.update_db()
+		elif tokens[0] == '.seek+' and alive:
+			self.moov.relative_seek(parse_time(message[7:]))
+			self.send_message(conv, format_status(self.moov.get_status()))
+			self.update_db()
+		elif tokens[0] == '.seek-' and alive:
+			self.moov.relative_seek(-parse_time(message[7:]))
+			self.send_message(conv, format_status(self.moov.get_status()))
+			self.update_db()
+		elif tokens[0] == '.set' and alive:
+			match = set_pattern.match(message[5:])
+			if match is not None:
+				self.moov.set_canonical(match.group())
+				playlist_position = int(match.group(1)) - 1
+				paused = match.group(2) == 'paused'
+				time = parse_time(match.group(3))
+				self.moov.set_canonical(playlist_position, paused, time)
+				self.send_message(conv, format_status(self.moov.get_status()))
+				self.db.update_db()
+			else:
+				conv.send('error: invalid args')
+		elif tokens[0] == '.close' and alive:
+			self.update_db()
+			self.kill_moov()
+		elif tokens[0] == '.re' and db_enabled and alive:
+			session = self.db.get_session(self.session_id)
+			moov_status = self.moov.get_status()
+			time_str = format_time(moov_status['time'])
+			if session['type'] == 'url':
+				self.send_message(conv, f'.o {self.video_url} {time_str}')
+			elif session['type'] == 'search':
+				playlist_position = moov_status['playlist_position'] + 1
+				search = session['search']
+				self.send_message(conv, f'.lor "{search}" {playlist_position} {time_str}')
 
-		elif tokens[0] == '.re':
-			if self.db is not None and alive:
-				time_str = format_time(self.moov.get_status()['time'])
-				self.conv.send(f'.o {self.video_url} {time_str}')
 
 	def download_info(self, url, callback, conv):
 		try:
 			info = moovdb.download_info(url)
 			GLib.idle_add(callback, info)
 		except:
-			GLib.idle_add(conv.send, 'error: could not get video information')
+			GLib.idle_add(self.send_message, conv, 'error: could not get video information')
 
 	def handle_control(self, control_command):
 		p = control_command['playlist_position'] + 1
 		t = format_time(control_command['time'])
 		pp = 'paused' if control_command['paused'] else 'playing'
 		message = f'.set {p} {pp} {t}'
-		self.conv.send(message)
+		self.send_message(self.conv, message)
 
 	def open_moov(self):
 		self.kill_moov()
@@ -367,17 +364,7 @@ class MoovPlugin(GajimPlugin):
 		if self.moov is not None:
 			self.kill_moov()
 
-	def relay_message(self, message, own):
-		def convert_color(rgba_str):
-			r = Gdk.RGBA()
-			r.parse(rgba_str)
-			return '#%02x%02x%02x%02x' % (
-				round(r.red * 255),
-				round(r.green * 255),
-				round(r.blue * 255),
-				round(r.alpha * 255)
-			)
-
+	def relay_message(self, message, own=True):
 		if self.moov and self.moov.alive():
 			fg = convert_color(self.config['USER_FG_COLOR' if own else 'PARTNER_FG_COLOR'])
 			bg = convert_color(self.config['USER_BG_COLOR' if own else 'PARTNER_BG_COLOR'])
