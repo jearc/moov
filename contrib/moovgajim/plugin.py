@@ -355,7 +355,6 @@ class MoovPlugin(GajimPlugin):
 		elif tokens[0] == '.set' and alive:
 			match = set_pattern.match(message[5:])
 			if match is not None:
-				self.moov.set_canonical(match.group())
 				playlist_position = int(match.group(1)) - 1
 				paused = match.group(2) == 'paused'
 				time = parse_time(match.group(3))
