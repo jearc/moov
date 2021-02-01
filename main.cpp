@@ -156,29 +156,30 @@ void handle_instruction(Player &p, Chat &c, Configuration &conf, json &j)
 	}
 	else if (type == "set_property")
 	{
-		auto property = j.at("property");
-		if (property == "ui_bg_color") {
-			conf.ui_bg_col = decode_color(j.at("value"));
-		} else if (property == "ui_text_color") {
-			conf.ui_text_col = decode_color(j.at("value"));
-		} else if (property == "button_color") {
-			conf.but_col = decode_color(j.at("value"));
-		} else if (property == "button_hovered_color") {
-			conf.but_hovered_col = decode_color(j.at("value"));
-		} else if (property == "button_pressed_color") {
-			conf.but_pressed_col = decode_color(j.at("value"));
-		} else if (property == "button_label_color") {
-			conf.but_label_col = decode_color(j.at("value"));
-		} else if (property == "seek_bar_bg_color") {
-			conf.seek_bar_bg_col = decode_color(j.at("value"));
-		} else if (property == "seek_bar_fg_inactive_color") {
-			conf.seek_bar_fg_inactive_col = decode_color(j.at("value"));
-		} else if (property == "seek_bar_fg_active_color") {
-			conf.seek_bar_fg_active_col = decode_color(j.at("value"));
-		} else if (property == "seek_bar_notch_color") {
-			conf.seek_bar_notch_col = decode_color(j.at("value"));
-		} else if (property == "seek_bar_text_color") {
-			conf.seek_bar_text_col = decode_color(j.at("value"));
+		auto p = j.at("property");
+		std::string v = j.at("value");
+		if (p == "ui_bg_color") {
+			conf.ui_bg_col = decode_color(v);
+		} else if (p == "ui_text_color") {
+			conf.ui_text_col = decode_color(v);
+		} else if (p == "button_color") {
+			conf.but_col = decode_color(v);
+		} else if (p == "button_hovered_color") {
+			conf.but_hovered_col = decode_color(v);
+		} else if (p == "button_pressed_color") {
+			conf.but_pressed_col = decode_color(v);
+		} else if (p == "button_label_color") {
+			conf.but_label_col = decode_color(v);
+		} else if (p == "seek_bar_bg_color") {
+			conf.seek_bar_bg_col = decode_color(v);
+		} else if (p == "seek_bar_fg_inactive_color") {
+			conf.seek_bar_fg_inactive_col = decode_color(v);
+		} else if (p == "seek_bar_fg_active_color") {
+			conf.seek_bar_fg_active_col = decode_color(v);
+		} else if (p == "seek_bar_notch_color") {
+			conf.seek_bar_notch_col = decode_color(v);
+		} else if (p == "seek_bar_text_color") {
+			conf.seek_bar_text_col = decode_color(v);
 		}
 	}
 	else if (type == "close")
