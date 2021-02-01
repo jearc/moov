@@ -141,8 +141,6 @@ class MoovPlugin(GajimPlugin):
 
 	def update(self, data):
 		if self.moov is not None and self.moov.alive():
-			for cp in color_properties:
-
 			if data == 'UI_BG_COLOR':
 				self.moov.set_property('ui_bg_color', convert_color(self.config[data]))
 			elif data == 'UI_TEXT_COLOR':
