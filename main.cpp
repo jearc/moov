@@ -593,15 +593,16 @@ int main(int argc, char **argv)
 
 		ImGuiIO &io = ImGui::GetIO();
 
-		auto exe_dir = std::filesystem::absolute(argv[0]).parent_path();
+		auto exe_dir = getexepath().parent_path();
 		auto cwd = std::filesystem::current_path();
 
+		std::filesystem::path lookup_dirs[] = {
+			exe_dir,
+			exe_dir / ".." / "share" / "moov",
+			cwd
+		};
+
 		auto find_file = [&](const char *font) {
-			std::filesystem::path lookup_dirs[] = {
-				exe_dir,
-				"/usr/local/share/moov",
-				cwd
-			};
 			for (auto &dir : lookup_dirs)
 				if (std::filesystem::is_regular_file(dir / font))
 					return std::optional(dir / font);

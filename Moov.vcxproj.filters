@@ -45,6 +45,9 @@
     <ClCompile Include="chat.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="exepath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ui.h">

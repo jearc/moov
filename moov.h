@@ -4,6 +4,7 @@
 #include <vector>
 #include <chrono>
 #include <optional>
+#include <filesystem>
 #include <mpv/client.h>
 #include <mpv/render.h>
 #include <mpv/render_gl.h>
@@ -134,3 +135,4 @@ std::string sec_to_timestr(uint32_t seconds);
 void die(std::string_view str);
 void send_control(int64_t pos, double time, bool paused);
 std::string statestr(double time, int paused, int64_t pl_pos, int64_t pl_count);
+std::filesystem::path getexepath();
