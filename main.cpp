@@ -283,7 +283,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
-	bool display_ui = intersects_rect(in.mouse_state.pos, l.ui_bg)
+	bool display_ui = (intersects_rect(in.mouse_state.pos, l.ui_bg) && in.mouse_state.in_window)
 		|| std::chrono::steady_clock::now() - ui.last_activity < std::chrono::seconds(2);
 
 	if (ui.fullscreen && !display_ui)
