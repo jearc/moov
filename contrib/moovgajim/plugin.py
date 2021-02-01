@@ -50,10 +50,12 @@ def format_time(time):
 
 
 def format_status(status):
-	s = f'{status["playlist_position"]+1}/{status["playlist_count"]} '
-	s += 'paused' if status['paused'] else 'playing'
-	s += f' {format_time(status["time"])}'
-	return s
+	playlist = f'{status["playlist_position"]+1}/{status["playlist_count"]}'
+	paused = 'paused' if status['paused'] else 'playing'
+	time = format_time(status["time"])
+	delay = round(status['delay'])
+	delay_str = f'{"-" if delay > 0 else "+"}{abs(delay)}'
+	return f'{playlist} {paused} {time} {delay_str}'
 
 
 class Conversation:

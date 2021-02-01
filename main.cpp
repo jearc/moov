@@ -151,6 +151,7 @@ void handle_instruction(Player &p, Chat &c, json &j)
 		res["playlist_count"] = info.pl_count;
 		res["time"] = info.c_time;
 		res["paused"] = info.c_paused;
+		res["delay"] = info.delay;
 		std::cout << res << std::endl;
 	}
 	else if (type == "close")
