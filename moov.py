@@ -119,6 +119,13 @@ class Moov:
 		self._control_queue.queue.clear()
 		return controls
 
+	def set_property(self, prop, value):
+		self._write({
+			'type': 'set_property',
+			'property': prop,
+			'value': value
+		})
+
 	def close(self):
 		if self.alive():
 			self._write({'type': 'close'})

@@ -94,7 +94,7 @@ uint32_t decode_color(std::string_view string)
 	return *(uint32_t *)channels;
 }
 
-void handle_instruction(Player &p, Chat &c, json &j)
+void handle_instruction(Player &p, Chat &c, Configuration &conf, json &j)
 {
 	auto type_it = j.find("type");
 	if (type_it == j.end())
@@ -154,6 +154,33 @@ void handle_instruction(Player &p, Chat &c, json &j)
 		res["delay"] = info.delay;
 		std::cout << res << std::endl;
 	}
+	else if (type == "set_property")
+	{
+		auto property = j.at("property");
+		if (property == "ui_bg_color") {
+			conf.ui_bg_col = decode_color(j.at("value"));
+		} else if (property == "ui_text_color") {
+			conf.ui_text_col = decode_color(j.at("value"));
+		} else if (property == "button_color") {
+			conf.but_col = decode_color(j.at("value"));
+		} else if (property == "button_hovered_color") {
+			conf.but_hovered_col = decode_color(j.at("value"));
+		} else if (property == "button_pressed_color") {
+			conf.but_pressed_col = decode_color(j.at("value"));
+		} else if (property == "button_label_color") {
+			conf.but_label_col = decode_color(j.at("value"));
+		} else if (property == "seek_bar_bg_color") {
+			conf.seek_bar_bg_col = decode_color(j.at("value"));
+		} else if (property == "seek_bar_fg_inactive_color") {
+			conf.seek_bar_fg_inactive_col = decode_color(j.at("value"));
+		} else if (property == "seek_bar_fg_active_color") {
+			conf.seek_bar_fg_active_col = decode_color(j.at("value"));
+		} else if (property == "seek_bar_notch_color") {
+			conf.seek_bar_notch_col = decode_color(j.at("value"));
+		} else if (property == "seek_bar_text_color") {
+			conf.seek_bar_text_col = decode_color(j.at("value"));
+		}
+	}
 	else if (type == "close")
 	{
 		die("closed by ipc");
@@ -165,14 +192,14 @@ void rect(ImRect rect, uint32_t color)
 	ImGui::GetWindowDrawList()->AddRectFilled(rect.pos, rect.pos + rect.size, color);
 }
 
-void text(ImRect rect, ImVec2 padding, ImFont *font, const char *text)
+void text(ImRect rect, ImVec2 padding, uint32_t col, ImFont *font, const char *text)
 {
 	ImGui::PushFont(font);
-	ImGui::GetWindowDrawList()->AddText(rect.pos + padding, decode_color("#ffffff"), text);
+	ImGui::GetWindowDrawList()->AddText(rect.pos + padding, col, text);
 	ImGui::PopFont();
 }
 
-bool button(UI_State &ui, Frame_Input &in, ImRect r, ImVec2 padding, ImFont *font = nullptr, const char *label = nullptr)
+bool button(Configuration &conf, UI_State &ui, Frame_Input &in, ImRect r, ImVec2 padding, ImFont *font = nullptr, const char *label = nullptr)
 {
 	enum { none, hover, pressed } state = none;
 	if (intersects_rect(in.mouse_state.pos, r) && in.mouse_state.in_window)
@@ -184,14 +211,14 @@ bool button(UI_State &ui, Frame_Input &in, ImRect r, ImVec2 padding, ImFont *fon
 
 	uint32_t col;
 	switch (state) {
-	case none: col = decode_color("#ff5555"); break;
-	case hover: col = decode_color("#55ff55"); break;
-	case pressed: col = decode_color("#5555ff"); break;
+	case none: col = conf.but_col; break;
+	case hover: col = conf.but_hovered_col; break;
+	case pressed: col = conf.but_pressed_col; break;
 	};
 	rect(r, col);
 	
 	if (font != nullptr && label != nullptr)
-		text(r, padding, font, label);
+		text(r, padding, conf.but_label_col, font, label);
 
 	return click;
 }
@@ -259,7 +286,7 @@ void chatbox(Chat &c, UI_State &ui, Layout &l)
 	ImGui::SetKeyboardFocusHere(-1);
 }
 
-void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, Layout &l, Chat &c)
+void create_ui(SDL_Window *sdl_win, Configuration &conf, UI_State &ui, Frame_Input &in, Player &p, Layout &l, Chat &c)
 {
 	auto info = p.get_info();
 
@@ -291,32 +318,32 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 	if (display_ui)
 	{
-		rect(l.ui_bg, 0xbb000000);
+		rect(l.ui_bg, conf.ui_bg_col);
 
-		if (button(ui, in, l.prev_but, l.minor_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
+		if (button(conf, ui, in, l.prev_but, l.minor_padding, icon_font, PLAYLIST_PREVIOUS_ICON)) {
 			p.set_pl_pos(info.pl_pos - 1);
 			info = p.get_info();
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
-        std::stringstream pl_status;
+		std::stringstream pl_status;
 		pl_status << (info.pl_pos + 1) << "/" << info.pl_count;
-		text(l.pl_status, l.major_padding, text_font, pl_status.str().c_str());
+		text(l.pl_status, l.major_padding, conf.ui_text_col, text_font, pl_status.str().c_str());
 
-		if (button(ui, in, l.next_but, l.minor_padding, icon_font, PLAYLIST_NEXT_ICON)) {
+		if (button(conf, ui, in, l.next_but, l.minor_padding, icon_font, PLAYLIST_NEXT_ICON)) {
 			p.set_pl_pos(info.pl_pos + 1);
 			info = p.get_info();
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
 		auto pp_but_str = info.c_paused ? PLAY_ICON : PAUSE_ICON;
-		if (button(ui, in, l.pp_but, l.major_padding, icon_font, pp_but_str)) {
+		if (button(conf, ui, in, l.pp_but, l.major_padding, icon_font, pp_but_str)) {
 			p.pause(!info.c_paused);
 			info = p.get_info();
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
-		text(l.time, l.major_padding, text_font, sec_to_timestr(info.c_time).c_str());
+		text(l.time, l.major_padding, conf.ui_text_col, text_font, sec_to_timestr(info.c_time).c_str());
 		if (!info.exploring)
 		{
 			uint32_t delay = std::round(abs(info.delay));
@@ -341,41 +368,41 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			ImVec2 text_size = calc_text_size(text_font, l.major_padding, indicator.str().c_str());
 			ImRect indicator_rect = l.delay_indicator;
 			indicator_rect.pos.x += indicator_rect.size.x - text_size.x;
-			text(indicator_rect, l.major_padding, text_font, indicator.str().c_str());
+			text(indicator_rect, l.major_padding, conf.ui_text_col, text_font, indicator.str().c_str());
 		}
 
-		if (button(ui, in, l.sync_but, l.major_padding, text_font, "Sync"))
+		if (button(conf, ui, in, l.sync_but, l.major_padding, text_font, "Sync"))
 		{
 			p.force_sync();
 		}
 
-		if (button(ui, in, l.canonize_but, l.major_padding, text_font, "Canonicalize"))
+		if (button(conf, ui, in, l.canonize_but, l.major_padding, text_font, "Canonicalize"))
 		{
 			p.set_time(info.c_time - info.delay);
 			info = p.get_info();
 			send_control(info.pl_pos, info.c_time, info.c_paused);
 		}
 
-		if (button(ui, in, l.audio_but, l.major_padding))
+		if (button(conf, ui, in, l.audio_but, l.major_padding))
 			p.set_audio(info.audio_pos + 1);
-		text(l.audio_icon, l.minor_padding, icon_font, AUDIO_ICON);
+		text(l.audio_icon, l.minor_padding, conf.ui_text_col, icon_font, AUDIO_ICON);
         std::stringstream audio_status;
 		audio_status << " " << info.audio_pos << "/" << info.audio_count;
-		text(l.audio_status, l.minor_padding, text_font, audio_status.str().c_str());
+		text(l.audio_status, l.minor_padding, conf.ui_text_col, text_font, audio_status.str().c_str());
 
-		if (button(ui, in, l.sub_but, l.major_padding))
+		if (button(conf, ui, in, l.sub_but, l.major_padding))
 			p.set_audio(info.sub_pos + 1);
-		text(l.sub_icon, l.minor_padding, icon_font, SUBTITLE_ICON);
+		text(l.sub_icon, l.minor_padding, conf.ui_text_col, icon_font, SUBTITLE_ICON);
         std::stringstream sub_status;
 		sub_status << " " << info.sub_pos << "/" << info.sub_count;
-		text(l.sub_status, l.minor_padding, text_font, sub_status.str().c_str());
+		text(l.sub_status, l.minor_padding, conf.ui_text_col, text_font, sub_status.str().c_str());
 
 		auto mute_str = info.muted ? MUTED_ICON : UNMUTED_ICON;
-		if (button(ui, in, l.mute_but, l.major_padding, icon_font, mute_str))
+		if (button(conf, ui, in, l.mute_but, l.major_padding, icon_font, mute_str))
 			p.toggle_mute();
 
 		auto fullscr_str = ui.fullscreen ? UNFULLSCREEN_ICON : FULLSCREEN_ICON;
-		if (button(ui, in, l.fullscr_but, l.major_padding, icon_font, fullscr_str))
+		if (button(conf, ui, in, l.fullscr_but, l.major_padding, icon_font, fullscr_str))
 			toggle_fullscreen(sdl_win, ui);
 
 		int notch_duration = 5 * 60;
@@ -387,7 +414,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 				ui.seek_bar_scale /= 1.3;
 		}
 
-		rect(l.seek_bar, decode_color("#88888888"));
+		rect(l.seek_bar, conf.seek_bar_bg_col);
 		float seek_fill_bar_w = l.seek_bar.size.x / 4;
 		if (info.exploring) {
 			float time_delta = info.e_time - info.c_time;
@@ -395,7 +422,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 		}
 		rect(
 			{l.seek_bar.pos, {seek_fill_bar_w, l.seek_bar.size.y}},
-			info.exploring ? decode_color("#ffaa00") : decode_color("#ffaa0088")
+			info.exploring ? conf.seek_bar_fg_active_col : conf.seek_bar_fg_inactive_col
 		);
 
 		int pixels_per_notch = l.seek_bar.size.x / (ui.seek_bar_scale / notch_duration);
@@ -404,16 +431,16 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			float y0 = l.seek_bar.pos.y + l.seek_bar.size.y / 2;
 			float y1 = l.seek_bar.pos.y + l.seek_bar.size.y;
 
-			ImGui::GetWindowDrawList()->AddLine({x, l.seek_bar.pos.y}, {x, y1}, decode_color("#000000"));
+			ImGui::GetWindowDrawList()->AddLine({x, l.seek_bar.pos.y}, {x, y1}, conf.seek_bar_notch_col);
 
 			x = l.seek_bar.pos.x + l.seek_bar.size.x / 4 - pixels_per_notch;
 			while (x > l.seek_bar.pos.x) {
-				ImGui::GetWindowDrawList()->AddLine({x, y0}, {x, y1}, decode_color("#000000"));
+				ImGui::GetWindowDrawList()->AddLine({x, y0}, {x, y1}, conf.seek_bar_notch_col);
 				x -= pixels_per_notch;
 			}
 			x = l.seek_bar.pos.x + l.seek_bar.size.x / 4 + pixels_per_notch;
 			while (x < l.seek_bar.pos.x + l.seek_bar.size.x) {
-				ImGui::GetWindowDrawList()->AddLine({x, y0}, {x, y1}, decode_color("#000000"));
+				ImGui::GetWindowDrawList()->AddLine({x, y0}, {x, y1}, conf.seek_bar_notch_col);
 				x += pixels_per_notch;
 			}
 		}
@@ -440,7 +467,7 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 			if (point > 0)
 				indicator_pos.x = in.mouse_state.pos.x - indicator_size.x;			
 
-			text({indicator_pos, indicator_size}, l.minor_padding, text_font, indicator_text.str().c_str());
+			text({indicator_pos, indicator_size}, l.minor_padding, conf.seek_bar_text_col, text_font, indicator_text.str().c_str());
 
 			if (in.left_click) {
 				if (!info.exploring)
@@ -451,12 +478,12 @@ void create_ui(SDL_Window *sdl_win, UI_State &ui, Frame_Input &in, Player &p, La
 
 		if (info.exploring)
 		{
-			text(l.explore_status, l.major_padding, text_font, sec_to_timestr(info.e_time).c_str());
+			text(l.explore_status, l.major_padding, conf.ui_text_col, text_font, sec_to_timestr(info.e_time).c_str());
 
-			if (button(ui, in, l.cancel_but, l.major_padding, text_font, "Cancel"))
+			if (button(conf, ui, in, l.cancel_but, l.major_padding, text_font, "Cancel"))
 				p.explore_cancel();
 
-			if (button(ui, in, l.accept_but, l.major_padding, text_font, "Accept"))
+			if (button(conf, ui, in, l.accept_but, l.major_padding, text_font, "Accept"))
 				p.explore_accept();
 		}
 	}
@@ -645,6 +672,7 @@ int main(int argc, char **argv)
 	mpvh.create_render_context(&mpv_ctx, render_params);
 	mpv_render_context_set_update_callback(mpv_ctx, on_mpv_redraw, nullptr);
 
+	Configuration conf;
 	Chat chat;
 	std::queue<json> input_queue;
 	std::mutex input_lock;
@@ -671,7 +699,7 @@ int main(int argc, char **argv)
 			}
 			if (!queue_empty)
 			{
-				handle_instruction(mpvh, chat, j);
+				handle_instruction(mpvh, chat, conf, j);
 			}
 		}
 
@@ -711,7 +739,7 @@ int main(int argc, char **argv)
 
 		Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
 
-		create_ui(window, ui, input, mpvh, l, chat);
+		create_ui(window, conf, ui, input, mpvh, l, chat);
 		glViewport(0, 0, w, h);
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

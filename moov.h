@@ -131,6 +131,23 @@ struct UI_State {
 	std::optional<Mouse_State> initial_left_down;
 };
 
+
+uint32_t decode_color(std::string_view string);
+
+struct Configuration {
+	uint32_t ui_bg_col = decode_color("#000000BB");
+	uint32_t ui_text_col = decode_color("#FFFFFF");
+	uint32_t but_col = decode_color("#FF0000");
+	uint32_t but_hovered_col = decode_color("#00FF00");
+	uint32_t but_pressed_col = decode_color("#0000FF");
+	uint32_t but_label_col = decode_color("#FFFFFF");
+	uint32_t seek_bar_bg_col = decode_color("#88888888");
+	uint32_t seek_bar_fg_inactive_col = decode_color("#ffaa0088");
+	uint32_t seek_bar_fg_active_col = decode_color("#ffaa00");
+	uint32_t seek_bar_notch_col = decode_color("#000000");
+	uint32_t seek_bar_text_col = decode_color("#FFFFFF");
+};
+
 std::string sec_to_timestr(uint32_t seconds);
 void die(std::string_view str);
 void send_control(int64_t pos, double time, bool paused);
