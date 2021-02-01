@@ -137,7 +137,7 @@ class MoovPlugin(GajimPlugin):
 			'message-sent': (ged.PREGUI, self._on_message_sent),
 		}
 		db_path = Path(configpaths.get('PLUGINS_DATA')) / 'moov' / 'db.json'
-		# self.db = moovdb.MoovDB(db_path)
+		self.db = moovdb.MoovDB(db_path)
 
 	def update(self, data):
 		if self.moov is not None and self.moov.alive():
@@ -427,7 +427,7 @@ class MoovPlugin(GajimPlugin):
 				GLib.idle_add(self.update_db)
 				last_update = now
 			for user_input in self.moov.get_user_inputs():
-				GLib.idle_add(self.send_message, user_input)
+				GLib.idle_add(self.send_message, self.conv, user_input)
 			for control_command in self.moov.get_user_control_commands():
 				GLib.idle_add(self.handle_control, control_command)
 			time.sleep(0.01)
