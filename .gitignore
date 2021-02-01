@@ -16,3 +16,5 @@ external
 x64
 youtube-dl.exe
 *.dll
+contrib/moovgajim/db.json
+todo.txt
