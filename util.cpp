@@ -12,7 +12,7 @@
 
 void die(std::string_view str)
 {
-	std::cout << str << std::endl;
+	std::cerr << str << std::endl;
 	exit(EXIT_FAILURE);
 }
 
