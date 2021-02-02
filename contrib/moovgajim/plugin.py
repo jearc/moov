@@ -67,6 +67,18 @@ class Conversation:
 			self._conn.send_message(message)
 		GLib.idle_add(f, text)
 
+color_properties = {
+	'ui_bg_color': (
+		'rgba(0, 0, 0, 53)',
+		_('Ui background color'),
+		_('Background color for Moov\'s UI')
+	),
+	'ui_text_color': (
+		'rgba(255, 255, 255, 100)',
+		_('UI text color'),
+		_('Text color for Moov\'s UI')
+	),
+}
 
 class MoovPlugin(GajimPlugin):
 
@@ -137,7 +149,7 @@ class MoovPlugin(GajimPlugin):
 			'message-sent': (ged.PREGUI, self._on_message_sent),
 		}
 		db_path = Path(configpaths.get('PLUGINS_DATA')) / 'moov' / 'db.json'
-		self.db = moovdb.MoovDB(db_path)
+		# self.db = moovdb.MoovDB(db_path)
 
 	def update(self, data):
 		if self.moov is not None and self.moov.alive():
@@ -360,7 +372,7 @@ class MoovPlugin(GajimPlugin):
 				time = parse_time(match.group(3))
 				self.moov.set_canonical(playlist_position, paused, time)
 				self.send_message(conv, format_status(self.moov.get_status()))
-				self.db.update_db()
+				self.update_db()
 			else:
 				conv.send('error: invalid args')
 		elif tokens[0] == '.close' and alive:
