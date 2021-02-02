@@ -568,11 +568,13 @@ Frame_Input get_sdl_input(SDL_Window *win)
 		case SDL_MOUSEBUTTONUP:
 			if (e.button.button == SDL_BUTTON_LEFT)
 				in.left_up = true;
+			break;
 		case SDL_MOUSEWHEEL:
 			if (e.wheel.y < 0)
 				in.scroll_down = true;
 			else if (e.wheel.y > 0)
 				in.scroll_up = true;
+			break;
 		case SDL_WINDOWEVENT:
 			if (e.window.event == SDL_WINDOWEVENT_EXPOSED)
 				in.redraw = true;
