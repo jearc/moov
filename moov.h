@@ -65,6 +65,7 @@ struct PlayerInfo {
 class Player {
 public:
 	Player();
+	void set_ytdl_format(const char *format);
 	void add_file(const char *file);
 	void pause(int paused);
 	void toggle_explore_paused();

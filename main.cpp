@@ -156,29 +156,31 @@ void handle_instruction(Player &p, Chat &c, Configuration &conf, json &j)
 	}
 	else if (type == "set_property")
 	{
-		auto p = j.at("property");
+		auto prop = j.at("property");
 		std::string v = j.at("value");
-		if (p == "ui_bg_color") {
+		if (prop == "ytdl_format") {
+			p.set_ytdl_format(v.c_str());
+		} else if (prop == "ui_bg_color") {
 			conf.ui_bg_col = decode_color(v);
-		} else if (p == "ui_text_color") {
+		} else if (prop == "ui_text_color") {
 			conf.ui_text_col = decode_color(v);
-		} else if (p == "button_color") {
+		} else if (prop == "button_color") {
 			conf.but_col = decode_color(v);
-		} else if (p == "button_hovered_color") {
+		} else if (prop == "button_hovered_color") {
 			conf.but_hovered_col = decode_color(v);
-		} else if (p == "button_pressed_color") {
+		} else if (prop == "button_pressed_color") {
 			conf.but_pressed_col = decode_color(v);
-		} else if (p == "button_label_color") {
+		} else if (prop == "button_label_color") {
 			conf.but_label_col = decode_color(v);
-		} else if (p == "seek_bar_bg_color") {
+		} else if (prop == "seek_bar_bg_color") {
 			conf.seek_bar_bg_col = decode_color(v);
-		} else if (p == "seek_bar_fg_inactive_color") {
+		} else if (prop == "seek_bar_fg_inactive_color") {
 			conf.seek_bar_fg_inactive_col = decode_color(v);
-		} else if (p == "seek_bar_fg_active_color") {
+		} else if (prop == "seek_bar_fg_active_color") {
 			conf.seek_bar_fg_active_col = decode_color(v);
-		} else if (p == "seek_bar_notch_color") {
+		} else if (prop == "seek_bar_notch_color") {
 			conf.seek_bar_notch_col = decode_color(v);
-		} else if (p == "seek_bar_text_color") {
+		} else if (prop == "seek_bar_text_color") {
 			conf.seek_bar_text_col = decode_color(v);
 		}
 	}

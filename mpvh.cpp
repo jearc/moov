@@ -43,6 +43,11 @@ Player::Player()
 	//syncmpv();
 }
 
+void Player::set_ytdl_format(const char *format)
+{
+		mpv_set_option_string(mpv, "ytdl-raw-options", (std::string("format=") + format).c_str());
+}
+
 void Player::add_file(const char *file)
 {
 	const char *cmd[] = { "loadfile", file, "append", NULL };
