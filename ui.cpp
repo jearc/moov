@@ -63,6 +63,8 @@ Layout calculate_layout(
 
 	Layout l = {};
 
+	l.text_height = text_height;
+
 	l.master_win.pos = ImVec2(0, 0);
 	l.master_win.size = ImVec2(win_w, win_h);
 	l.major_padding = ImVec2(text_height / 4, text_height / 15);

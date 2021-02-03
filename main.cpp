@@ -252,8 +252,10 @@ void chatbox(Chat &c, UI_State &ui, Layout &l)
 		if (opacity == 0)
 			break;
 
+		auto padding = l.text_height / 4;
 		auto text_size = ImGui::CalcTextSize(msg.text.c_str(), nullptr, false, l.chat_log.size.x);
-		message_pos.y -= text_size.y;
+		message_pos.y -= text_size.y + padding * 3;
+		auto text_pos = ImVec2(message_pos.x + padding, message_pos.y + padding);
 		if (message_pos.y < l.chat_log.pos.y)
 			break;
 
@@ -266,9 +268,9 @@ void chatbox(Chat &c, UI_State &ui, Layout &l)
 		uint32_t fg = fade_color(msg.fg, opacity*opacity);
 		uint32_t bg = fade_color(msg.bg, opacity);
 
-		ImVec2 rect_p_max(message_pos.x + text_size.x, message_pos.y + text_size.y);
-		draw_list->AddRectFilled(message_pos, rect_p_max, bg);
-		draw_list->AddText(nullptr, 0.0f, message_pos, fg, msg.text.c_str(), msg.text.c_str() + msg.text.size(), l.chat_log.size.x, nullptr);
+		ImVec2 rect_p_max(message_pos.x + text_size.x + padding * 2, message_pos.y + text_size.y + padding * 2);
+		draw_list->AddRectFilled(message_pos, rect_p_max, bg, 10);
+		draw_list->AddText(nullptr, 0.0f, text_pos, fg, msg.text.c_str(), msg.text.c_str() + msg.text.size(), l.chat_log.size.x, nullptr);
 	}
 
 	static std::array<char, 1024> buf;

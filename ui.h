@@ -16,6 +16,8 @@
 #define UNFULLSCREEN_ICON ((const char *)u8"\ue5d1")
 
 struct Layout {
+	float text_height;
+
 	ImVec2 major_padding;
 	ImVec2 minor_padding;
 
