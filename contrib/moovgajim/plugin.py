@@ -332,7 +332,7 @@ class MoovPlugin(GajimPlugin):
 			moov_status = self.moov.get_status()
 			time_str = format_time(moov_status['time'])
 			if session['type'] == 'url':
-				self.send_message(conv, f'.o {self.video_url} {time_str}')
+				self.send_message(conv, f'.o {session["video_info"]["url"]} {time_str}')
 			elif session['type'] == 'search':
 				playlist_position = moov_status['playlist_position'] + 1
 				search = session['search']
