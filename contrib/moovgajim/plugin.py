@@ -118,7 +118,7 @@ class MoovPlugin(GajimPlugin):
 			'message-sent': (ged.PREGUI, self._on_message_sent),
 		}
 		db_path = Path(configpaths.get('PLUGINS_DATA')) / 'moov' / 'db.json'
-		# self.db = moovdb.MoovDB(db_path)
+		self.db = moovdb.MoovDB(db_path)
 
 	def update(self, data):
 		if self.moov is not None and self.moov.alive():
