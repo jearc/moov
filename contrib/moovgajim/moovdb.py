@@ -47,7 +47,7 @@ def format_time(time):
 	return (f'{h}:{m:02}' if h else f'{m}') + f':{s:02}'
 
 def format_link(url, text):
-    return f'<a href="{url}">{html.escape(text)}</a>'
+    return f'<a href="{html.escape(url)}">{html.escape(text)}</a>'
 
 def format_search_session(index, session):
     return (
