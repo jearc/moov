@@ -20,6 +20,7 @@ import os
 
 lor_pattern = re.compile(r'^\s*"([^"]+)"\s+(\d+)\s+((\d+:)?(\d+:)?\d+)\s*$')
 set_pattern = re.compile(r'^\s*(\d+)\s+(paused|playing)\s+((\d+:)?(\d+:)?\d+)\s*$')
+mog_pattern = re.compile(r'\s*(rgb[^\)]+\))\s+(rgb[^\)]+\))\s*$')
 
 ytdl_formats = {
 	'144p': 'bestvideo[height<=144]+bestaudio/best',
@@ -132,7 +133,7 @@ class MoovPlugin(GajimPlugin):
 		contact = app.contacts.get_contact(event.account, event.jid)
 		conv = Conversation(event.account, contact, event.conn)
 		self.relay_message(event.msgtxt, False)
-		self.handle_command(conv, event.msgtxt)
+		self.handle_command(conv, event.msgtxt, False)
 
 	def _on_message_sent(self, event):
 		if not event.message:
@@ -147,15 +148,15 @@ class MoovPlugin(GajimPlugin):
 		)
 
 		self.relay_message(event.message, True)
-		self.handle_command(conv, event.message)
+		self.handle_command(conv, event.message, True)
 
 	def send_message(self, conv, text, xhtml=None, command=False):
 		conv.send(text, xhtml=xhtml)
 		self.relay_message(text)
 		if command:
-			self.handle_command(conv, text)
+			self.handle_command(conv, text, True)
 
-	def handle_command(self, conv, message):
+	def handle_command(self, conv, message, own):
 		tokens = message.split()
 
 		alive = self.moov is not None and self.moov.alive()
@@ -336,7 +337,16 @@ class MoovPlugin(GajimPlugin):
 				playlist_position = moov_status['playlist_position'] + 1
 				search = session['search']
 				self.send_message(conv, f'.lor "{search}" {playlist_position} {time_str}')
-
+		elif tokens[0] == '.sharemog' and own:
+			self.send_message(conv, f'.mog {self.config["USER_FG_COLOR"]} {self.config["USER_BG_COLOR"]}')
+		elif tokens[0] == '.mog' and not own:
+			match = set_pattern.match(message[5:])
+			if match is not None:
+				self.config['PARTNER_FG_COLOR'] = match.group(1)
+				self.config['PARTNER_BG_COLOR'] = match.group(2)
+				conv.send('roger roger')
+			else:
+				conv.send('error: invalid args')
 
 	def download_info(self, url, callback, conv):
 		try:
