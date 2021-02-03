@@ -22,13 +22,12 @@ lor_pattern = re.compile(r'^\s*"([^"]+)"\s+(\d+)\s+((\d+:)?(\d+:)?\d+)\s*$')
 set_pattern = re.compile(r'^\s*(\d+)\s+(paused|playing)\s+((\d+:)?(\d+:)?\d+)\s*$')
 mog_pattern = re.compile(r'\s*(rgb[^\)]+\))\s+(rgb[^\)]+\))\s*$')
 
-ytdl_formats = {
-	'144p': 'bestvideo[height<=144]+bestaudio/best',
-	'240p': 'bestvideo[height<=240]+bestaudio/best',
-	'480p': 'bestvideo[height<=480]+bestaudio/best',
-	'720p': 'bestvideo[height<=720]+bestaudio/best',
-	'1080p': 'bestvideo[height<=1080]+bestaudio/best',
-}
+ytdl_formats = {}
+ytdl_formats['1080p'] = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best'
+ytdl_formats['720p'] = 'bestvideo[height<=720]+bestaudio/best[height<=720]/' + ytdl_formats['1080p']
+ytdl_formats['480p'] = 'bestvideo[height<=480]+bestaudio/best[height<=480]/' + ytdl_formats['720p']
+ytdl_formats['240p'] = 'bestvideo[height<=240]+bestaudio/best[height<=240]/' + ytdl_formats['480p']
+ytdl_formats['144p'] = 'bestvideo[height<=144]+bestaudio/best[height<=144]/' + ytdl_formats['240p']
 
 def parse_time(string):
 	ns = re.findall(r'-?\d+', string)
