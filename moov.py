@@ -11,7 +11,11 @@ class Moov:
 	def __init__(self):
 		self._status_request_counter = 0
 		self._proc = subprocess.Popen(
-		    ['moov'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		    ['moov'],
+			stdin=subprocess.PIPE,
+			stdout=subprocess.PIPE,
+			universal_newlines=True
+		)
 		self._message_queue = queue.Queue()
 		self._control_queue = queue.Queue()
 		self._replies = dict()
@@ -20,13 +24,12 @@ class Moov:
 		self._reader_thread.start()
 
 	def _write(self, v):
-		self._proc.stdin.write(json.dumps(v).encode('utf-8'))
-		self._proc.stdin.write('\n'.encode('utf-8'))
+		self._proc.stdin.write(json.dumps(v))
+		self._proc.stdin.write('\n')
 		self._proc.stdin.flush()
 
 	def _reader(self):
-		while self._proc and self._proc.poll() is None:
-			line = self._proc.stdout.readline()
+		for line in iter(self._proc.stdout.readline, ""):
 			msg = json.loads(line)
 			if msg['type'] == 'control':
 				self._control_queue.put(msg)
@@ -35,6 +38,7 @@ class Moov:
 					self._replies[msg['request_id']] = msg
 			if msg['type'] == 'user_input':
 				self._message_queue.put(msg['text'])
+		self._proc.stdout.close()
 
 	def _request_status(self):
 		request_id = self._status_request_counter
