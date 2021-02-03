@@ -71,6 +71,16 @@ color_properties = {
 class MoovConfigDialog(SettingsDialog):
     def __init__(self, plugin, parent):
         self.plugin = plugin
+
+        qualities = [
+            ('best', _('Best')),
+            ('1080p', '1080p'),
+            ('720p', '720p'),
+            ('480p', '480p'),
+            ('240p', '240p'),
+            ('144p', '144p'),
+        ]
+
         settings = [
             Setting(
                 'DirectoryChooserSetting',
@@ -80,6 +90,16 @@ class MoovConfigDialog(SettingsDialog):
                 callback=self._on_setting,
                 data='VIDEO_DIR',
                 desc=_('Directory for local video search')
+            ),
+            Setting(
+                SettingKind.COMBO,
+                _('Preferred maximum stream quality'),
+                SettingType.VALUE,
+                self.plugin.config['preferred_maximum_stream_quality'],
+                callback=self._on_setting,
+                data='preferred_maximum_stream_quality',
+                desc=_('Preferred maximum quality for internet videos'),
+                props={'combo_items': qualities},
             ),
             Setting('AlphaColorSetting',
                     _('User message foreground color'),

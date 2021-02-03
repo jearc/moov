@@ -21,6 +21,14 @@ import os
 lor_pattern = re.compile(r'^\s*"([^"]+)"\s+(\d+)\s+((\d+:)?(\d+:)?\d+)\s*$')
 set_pattern = re.compile(r'^\s*(\d+)\s+(paused|playing)\s+((\d+:)?(\d+:)?\d+)\s*$')
 
+ytdl_formats = {
+	'144p': 'bestvideo[height<=144]+bestaudio/best',
+	'240p': 'bestvideo[height<=240]+bestaudio/best',
+	'480p': 'bestvideo[height<=480]+bestaudio/best',
+	'720p': 'bestvideo[height<=720]+bestaudio/best',
+	'1080p': 'bestvideo[height<=1080]+bestaudio/best',
+}
+
 def parse_time(string):
 	ns = re.findall(r'-?\d+', string)
 	return reduce(lambda t, n: 60*t + int(n), ns[:3], 0)
@@ -84,6 +92,10 @@ class MoovPlugin(GajimPlugin):
 			'VIDEO_DIR': (
 				None,
 				'Directory for local video search'),
+			'preferred_maximum_stream_quality': (
+				'best',
+				_('Preferred maximum quality for internet videos')
+			),
 			'USER_FG_COLOR': (
 				'rgba(255, 255, 191, 100)',
 				'Foreground color for your messages'),
@@ -345,6 +357,11 @@ class MoovPlugin(GajimPlugin):
 		self.moov = moov.Moov()
 		self.moov_thread = Thread(target=self.moov_thread_f)
 		self.moov_thread.start()
+		if self.config['preferred_maximum_stream_quality'] != 'best':
+			self.moov.set_property(
+				'ytdl_format',
+				ytdl_formats[self.config['preferred_maximum_stream_quality']]
+			)
 		for p in color_properties:
 			self.moov.set_property(p, convert_color(self.config[p]))
 
