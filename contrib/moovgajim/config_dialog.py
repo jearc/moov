@@ -10,13 +10,70 @@ from gajim.gtk.const import SettingType
 
 from gajim.plugins.plugins_i18n import _
 
+color_properties = {
+	'ui_bg_color': (
+		'rgba(0, 0, 0, 53)',
+		_('UI background color'),
+		_('Background color for Moov\'s UI')
+	),
+	'ui_text_color': (
+		'rgba(255, 255, 255, 100)',
+		_('UI text color'),
+		_('Text color for Moov\'s UI')
+	),
+	'button_color': (
+		'rgba(255, 0, 0, 100)',
+		_('Button color'),
+		_('Color of buttons in Moov\'s UI')
+	),
+	'button_hovered_color': (
+		'rgba(0, 255, 0, 100)',
+		_('Hovered button color'),
+		_('Color of hovered buttons in Moov\'s UI')
+	),
+	'button_pressed_color': (
+		'rgba(0, 0, 255, 100)',
+		_('Pressed button color'),
+		_('Color of pressed buttons in Moov\'s UI')
+	),
+	'button_label_color': (
+		'rgba(255, 255, 255, 100)',
+		_('Button label color'),
+		_('Color of button labels in Moov\'s UI')
+	),
+	'seek_bar_bg_color': (
+		'rgba(136, 136, 136, 53)',
+		_('Seek bar background color'),
+		_('Seek bar background color for Moov\'s UI')
+	),
+	'seek_bar_fg_inactive_color': (
+		'rgba(255, 170, 0, 53)',
+		_('Inactive seek bar foreground color'),
+		_('Inactive seek bar foreground color for Moov\'s UI')
+	),
+	'seek_bar_fg_active_color': (
+		'rgba(255, 170, 0, 100)',
+		_('Active seek bar foreground color'),
+		_('Active seek bar foreground color for Moov\'s UI')
+	),
+	'seek_bar_notch_color': (
+		'rgba(0, 0, 0, 100)',
+		_('Seek bar notch color'),
+		_('Seek bar notch color for Moov\'s UI')
+	),
+	'seek_bar_text_color': (
+		'rgba(255, 255, 255, 100)',
+		_('Seek bar text color'),
+		_('Seek bar text color for Moov\'s UI')
+	),
+}
 
 class MoovConfigDialog(SettingsDialog):
     def __init__(self, plugin, parent):
         self.plugin = plugin
         settings = [
             Setting(
-                'MoovDirFileChooserSetting',
+                'DirectoryChooserSetting',
                 _('Video directory'),
                 SettingType.VALUE,
                 self.plugin.config['VIDEO_DIR'],
@@ -24,7 +81,7 @@ class MoovConfigDialog(SettingsDialog):
                 data='VIDEO_DIR',
                 desc=_('Directory for local video search')
             ),
-            Setting('UserFGColorSetting',
+            Setting('AlphaColorSetting',
                     _('User message foreground color'),
                     SettingType.VALUE,
                     self.plugin.config['USER_FG_COLOR'],
@@ -32,7 +89,7 @@ class MoovConfigDialog(SettingsDialog):
                     data='USER_FG_COLOR',
                     desc=_('Foreground color for your messages'),
             ),
-            Setting('UserBGColorSetting',
+            Setting('AlphaColorSetting',
                     _('User message background color'),
                     SettingType.VALUE,
                     self.plugin.config['USER_BG_COLOR'],
@@ -40,7 +97,7 @@ class MoovConfigDialog(SettingsDialog):
                     data='USER_BG_COLOR',
                     desc=_('Background color for your messages'),
             ),
-            Setting('PartnerFGColorSetting',
+            Setting('AlphaColorSetting',
                     _('Partner message foreground color'),
                     SettingType.VALUE,
                     self.plugin.config['PARTNER_FG_COLOR'],
@@ -48,7 +105,7 @@ class MoovConfigDialog(SettingsDialog):
                     data='PARTNER_FG_COLOR',
                     desc=_('Foreground color for your partner\'s messages'),
             ),
-            Setting('PartnerBGColorSetting',
+            Setting('AlphaColorSetting',
                     _('Partner message background color'),
                     SettingType.VALUE,
                     self.plugin.config['PARTNER_BG_COLOR'],
@@ -56,113 +113,22 @@ class MoovConfigDialog(SettingsDialog):
                     data='PARTNER_BG_COLOR',
                     desc=_('Background color for your partner\'s messages'),
             ),
-            Setting('UIBGColorSetting',
-                    _('UI background color'),
-                    SettingType.VALUE,
-                    self.plugin.config['UI_BG_COLOR'],
-                    callback=self._on_setting,
-                    data='UI_BG_COLOR',
-                    desc=_('Background color for Moov\'s UI'),
-            ),
-            Setting('UITextColorSetting',
-                    _('UI text color'),
-                    SettingType.VALUE,
-                    self.plugin.config['UI_TEXT_COLOR'],
-                    callback=self._on_setting,
-                    data='UI_TEXT_COLOR',
-                    desc=_('Text color for Moov\'s UI'),
-            ),
-            Setting('ButtonColorSetting',
-                    _('Button color'),
-                    SettingType.VALUE,
-                    self.plugin.config['BUTTON_COLOR'],
-                    callback=self._on_setting,
-                    data='BUTTON_COLOR',
-                    desc=_('Color of buttons in Moov\'s UI'),
-            ),
-            Setting('HoveredButtonColorSetting',
-                    _('Hovered button color'),
-                    SettingType.VALUE,
-                    self.plugin.config['BUTTON_HOVERED_COLOR'],
-                    callback=self._on_setting,
-                    data='BUTTON_HOVERED_COLOR',
-                    desc=_('Color of hovered buttons in Moov\'s UI'),
-            ),
-            Setting('PressedButtonColorSetting',
-                    _('Pressed button color'),
-                    SettingType.VALUE,
-                    self.plugin.config['BUTTON_PRESSED_COLOR'],
-                    callback=self._on_setting,
-                    data='BUTTON_PRESSED_COLOR',
-                    desc=_('Color of pressed buttons in Moov\'s UI'),
-            ),
-            Setting('ButtonLabelColorSetting',
-                    _('Button label color'),
-                    SettingType.VALUE,
-                    self.plugin.config['BUTTON_LABEL_COLOR'],
-                    callback=self._on_setting,
-                    data='BUTTON_LABEL_COLOR',
-                    desc=_('Color of pressed buttons in Moov\'s UI'),
-            ),
-            Setting('SeekBarBGColorSetting',
-                    _('Seek bar background color'),
-                    SettingType.VALUE,
-                    self.plugin.config['SEEK_BAR_BG_COLOR'],
-                    callback=self._on_setting,
-                    data='SEEK_BAR_BG_COLOR',
-                    desc=_('Seek bar background color for Moov\'s UI'),
-            ),
-            Setting('InactiveSeekBarFGColorSetting',
-                    _('Inactive seek bar foreground color'),
-                    SettingType.VALUE,
-                    self.plugin.config['SEEK_BAR_FG_INACTIVE_COLOR'],
-                    callback=self._on_setting,
-                    data='SEEK_BAR_FG_INACTIVE_COLOR',
-                    desc=_('Inactive seek bar foreground color for Moov\'s UI'),
-            ),
-            Setting('ActiveSeekBarFGColorSetting',
-                    _('Active seek bar foreground color'),
-                    SettingType.VALUE,
-                    self.plugin.config['SEEK_BAR_FG_ACTIVE_COLOR'],
-                    callback=self._on_setting,
-                    data='SEEK_BAR_FG_ACTIVE_COLOR',
-                    desc=_('Active seek bar foreground color for Moov\'s UI'),
-            ),
-            Setting('SeekBarNotchColorSetting',
-                    _('Seek bar notch color'),
-                    SettingType.VALUE,
-                    self.plugin.config['SEEK_BAR_NOTCH_COLOR'],
-                    callback=self._on_setting,
-                    data='SEEK_BAR_NOTCH_COLOR',
-                    desc=_('Seek bar notch color for Moov\'s UI'),
-            ),
-            Setting('SeekBarTextColorSetting',
-                    _('Seek bar text color'),
-                    SettingType.VALUE,
-                    self.plugin.config['SEEK_BAR_TEXT_COLOR'],
-                    callback=self._on_setting,
-                    data='SEEK_BAR_TEXT_COLOR',
-                    desc=_('Seek bar text color for Moov\'s UI'),
-            ),
         ]
 
+        for p in color_properties:
+            settings.append(Setting(
+                'AlphaColorSetting',
+                color_properties[p][1],
+                SettingType.VALUE,
+                self.plugin.config[p],
+                callback=self._on_setting,
+                data=p,
+                desc=color_properties[p][2]
+            ))
+
         extensions = [
-            ('MoovDirFileChooserSetting', MoovFileChooserSetting),
-            ('UserFGColorSetting', AlphaColorSetting),
-            ('UserBGColorSetting', AlphaColorSetting),
-            ('PartnerFGColorSetting', AlphaColorSetting),
-            ('PartnerBGColorSetting', AlphaColorSetting),
-            ('UIBGColorSetting', AlphaColorSetting),
-            ('UITextColorSetting', AlphaColorSetting),
-            ('ButtonColorSetting', AlphaColorSetting),
-            ('HoveredButtonColorSetting', AlphaColorSetting),
-            ('PressedButtonColorSetting', AlphaColorSetting),
-            ('ButtonLabelColorSetting', AlphaColorSetting),
-            ('SeekBarBGColorSetting', AlphaColorSetting),
-            ('InactiveSeekBarFGColorSetting', AlphaColorSetting),
-            ('ActiveSeekBarFGColorSetting', AlphaColorSetting),
-            ('SeekBarNotchColorSetting', AlphaColorSetting),
-            ('SeekBarTextColorSetting', AlphaColorSetting),
+            ('DirectoryChooserSetting', DirectoryChooserSetting),
+            ('AlphaColorSetting', AlphaColorSetting),
         ]
 
         SettingsDialog.__init__(self, parent,
@@ -184,7 +150,7 @@ class AlphaColorSetting(ColorSetting):
         self.color_button.set_use_alpha(True)
 
 
-class MoovFileChooserSetting(FileChooserSetting):
+class DirectoryChooserSetting(FileChooserSetting):
 
     def __init__(self, *args, **kwargs):
         FileChooserSetting.__init__(self, filefilter=None, *args, **kwargs)

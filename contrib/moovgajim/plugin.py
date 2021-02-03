@@ -15,6 +15,7 @@ from nbxmpp.modules.misc import build_xhtml_body
 import moovgajim.moov as moov
 import moovgajim.moovdb as moovdb
 from moovgajim.config_dialog import MoovConfigDialog
+from moovgajim.config_dialog import color_properties
 import os
 
 lor_pattern = re.compile(r'^\s*"([^"]+)"\s+(\d+)\s+((\d+:)?(\d+:)?\d+)\s*$')
@@ -67,18 +68,6 @@ class Conversation:
 			self._conn.send_message(message)
 		GLib.idle_add(f, text)
 
-color_properties = {
-	'ui_bg_color': (
-		'rgba(0, 0, 0, 53)',
-		_('Ui background color'),
-		_('Background color for Moov\'s UI')
-	),
-	'ui_text_color': (
-		'rgba(255, 255, 255, 100)',
-		_('UI text color'),
-		_('Text color for Moov\'s UI')
-	),
-}
 
 class MoovPlugin(GajimPlugin):
 
@@ -107,42 +96,9 @@ class MoovPlugin(GajimPlugin):
 			'PARTNER_BG_COLOR': (
 				'rgba(0, 0, 0, 80)',
 				'Background color for your partner\'s messages'),
-			'UI_BG_COLOR': (
-				'rgba(0, 0, 0, 53)',
-				'Background color for Moov\'s UI'),
-			'UI_TEXT_COLOR': (
-				'rgba(255, 255, 255, 100)',
-				'Text color for Moov\'s UI'),
-			'BUTTON_COLOR': (
-				'rgba(255, 0, 0, 100)',
-				'Color of buttons in Moov\'s UI'),
-			'BUTTON_HOVERED_COLOR': (
-				'rgba(0, 255, 0, 100)',
-				'Color of hovered buttons in Moov\'s UI'),
-			'BUTTON_PRESSED_COLOR': (
-				'rgba(0, 0, 255, 100)',
-				'Color of pressed buttons in Moov\'s UI'),
-			'BUTTON_LABEL_COLOR': (
-				'rgba(255, 255, 255, 100)',
-				'Color of button labels in Moov\'s UI'),
-			'SEEK_BAR_BG_COLOR': (
-				'rgba(136, 136, 136, 53)',
-				'Seek bar background color for Moov\'s UI'),
-			'SEEK_BAR_FG_INACTIVE_COLOR': (
-				'rgba(255, 170, 0, 53)',
-				'Inactive seek bar foreground color for Moov\'s UI'),
-			'SEEK_BAR_FG_ACTIVE_COLOR': (
-				'rgba(255, 170, 0, 100)',
-				'Active seek bar foreground color for Moov\'s UI'),
-			'SEEK_BAR_NOTCH_COLOR': (
-				'rgba(0, 0, 0, 100)',
-				'Seek bar notch color for Moov\'s UI'),
-			'SEEK_BAR_TEXT_COLOR': (
-				'rgba(255, 255, 255, 100)',
-				'Seek bar text color for Moov\'s UI'),
 		}
-		# for cp in color_properties:
-		# 	self.config.default_values[cp[0]] = (cp[1], cp[3])
+		for p in color_properties:
+			self.config_default_values[p] = (color_properties[p][0], color_properties[p][2])
 
 		self.events_handlers = {
 			'decrypted-message-received': (ged.PREGUI, self._on_message_received),
@@ -153,28 +109,8 @@ class MoovPlugin(GajimPlugin):
 
 	def update(self, data):
 		if self.moov is not None and self.moov.alive():
-			if data == 'UI_BG_COLOR':
-				self.moov.set_property('ui_bg_color', convert_color(self.config[data]))
-			elif data == 'UI_TEXT_COLOR':
-				self.moov.set_property('ui_text_color', convert_color(self.config[data]))
-			if data == 'BUTTON_COLOR':
-				self.moov.set_property('button_color', convert_color(self.config[data]))
-			elif data == 'BUTTON_HOVERED_COLOR':
-				self.moov.set_property('button_hovered_color', convert_color(self.config[data]))
-			elif data == 'BUTTON_PRESSED_COLOR':
-				self.moov.set_property('button_pressed_color', convert_color(self.config[data]))
-			elif data == 'BUTTON_LABEL_COLOR':
-				self.moov.set_property('button_label_color', convert_color(self.config[data]))
-			elif data == 'SEEK_BAR_BG_COLOR':
-				self.moov.set_property('seek_bar_bg_color', convert_color(self.config[data]))
-			elif data == 'SEEK_BAR_FG_INACTIVE_COLOR':
-				self.moov.set_property('seek_bar_fg_inactive_color', convert_color(self.config[data]))
-			elif data == 'SEEK_BAR_FG_ACTIVE_COLOR':
-				self.moov.set_property('seek_bar_fg_active_color', convert_color(self.config[data]))
-			elif data == 'SEEK_BAR_NOTCH_COLOR':
-				self.moov.set_property('seek_bar_notch_color', convert_color(self.config[data]))
-			elif data == 'SEEK_BAR_TEXT_COLOR':
-				self.moov.set_property('seek_bar_text_color', convert_color(self.config[data]))
+			if data in color_properties:
+				self.moov.set_property(data, convert_color(self.config[data]))
 
 
 	def _on_message_received(self, event):
@@ -409,17 +345,8 @@ class MoovPlugin(GajimPlugin):
 		self.moov = moov.Moov()
 		self.moov_thread = Thread(target=self.moov_thread_f)
 		self.moov_thread.start()
-		self.moov.set_property('ui_bg_color', convert_color(self.config['UI_BG_COLOR']))
-		self.moov.set_property('ui_text_color', convert_color(self.config['UI_TEXT_COLOR']))
-		self.moov.set_property('button_color', convert_color(self.config['BUTTON_COLOR']))
-		self.moov.set_property('button_hovered_color', convert_color(self.config['BUTTON_HOVERED_COLOR']))
-		self.moov.set_property('button_pressed_color', convert_color(self.config['BUTTON_PRESSED_COLOR']))
-		self.moov.set_property('button_label_color', convert_color(self.config['BUTTON_LABEL_COLOR']))
-		self.moov.set_property('seek_bar_bg_color', convert_color(self.config['SEEK_BAR_BG_COLOR']))
-		self.moov.set_property('seek_bar_fg_inactive_color', convert_color(self.config['SEEK_BAR_FG_INACTIVE_COLOR']))
-		self.moov.set_property('seek_bar_fg_active_color', convert_color(self.config['SEEK_BAR_FG_ACTIVE_COLOR']))
-		self.moov.set_property('seek_bar_notch_color', convert_color(self.config['SEEK_BAR_NOTCH_COLOR']))
-		self.moov.set_property('seek_bar_text_color', convert_color(self.config['SEEK_BAR_TEXT_COLOR']))
+		for p in color_properties:
+			self.moov.set_property(p, convert_color(self.config[p]))
 
 	def update_db(self):
 		if self.db is not None and self.session_id is not None:
