@@ -340,7 +340,7 @@ class MoovPlugin(GajimPlugin):
 		elif tokens[0] == '.sharemog' and own:
 			self.send_message(conv, f'.mog {self.config["USER_FG_COLOR"]} {self.config["USER_BG_COLOR"]}')
 		elif tokens[0] == '.mog' and not own:
-			match = set_pattern.match(message[5:])
+			match = mog_pattern.match(message[5:])
 			if match is not None:
 				self.config['PARTNER_FG_COLOR'] = match.group(1)
 				self.config['PARTNER_BG_COLOR'] = match.group(2)
