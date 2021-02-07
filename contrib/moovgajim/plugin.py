@@ -21,6 +21,7 @@ import os
 lor_pattern = re.compile(r'^\s*"([^"]+)"\s+(\d+)\s+((\d+:)?(\d+:)?\d+)\s*$')
 set_pattern = re.compile(r'^\s*(\d+)\s+(paused|playing)\s+((\d+:)?(\d+:)?\d+)\s*$')
 mog_pattern = re.compile(r'\s*(rgb[^\)]+\))\s+(rgb[^\)]+\))\s*$')
+index_pattern  = re.compile(r'^\s*(\d+)\s*$')
 
 ytdl_formats = {}
 ytdl_formats['1080p'] = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best'
@@ -308,6 +309,23 @@ class MoovPlugin(GajimPlugin):
 			self.moov.relative_seek(-parse_time(message[7:]))
 			self.send_message(conv, format_status(self.moov.get_status()))
 			self.update_db()
+		elif tokens[0] == '.prev' and alive:
+			self.moov.previous()
+			self.send_message(conv, format_status(self.moov.get_status()))
+			self.update_db()
+		elif tokens[0] == '.next' and alive:
+			self.moov.next()
+			self.send_message(conv, format_status(self.moov.get_status()))
+			self.update_db()
+		elif tokens[0] == '.index' and alive:
+			match = index_pattern.match(message[7:])
+			if match is not None:
+				playlist_position = int(match.group(1)) - 1
+				self.moov.index(playlist_position)
+				self.send_message(conv, format_status(self.moov.get_status()))
+				self.update_db()
+			else:
+				conv.send('error: invalid args')
 		elif tokens[0] == '.set' and alive:
 			match = set_pattern.match(message[5:])
 			if match is not None:
