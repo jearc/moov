@@ -233,7 +233,7 @@ class MoovPlugin(GajimPlugin):
 			playlist_position = int(match.group(2)) - 1
 			time = parse_time(match.group(3))
 
-			def f():
+			def f(results):
 				if results is None:
 					self.send_message(conv, 'error: no video directory set')
 					return
