@@ -396,7 +396,7 @@ void create_ui(SDL_Window *sdl_win, Configuration &conf, UI_State &ui, Frame_Inp
 		text(l.audio_status, l.minor_padding, conf.ui_text_col, text_font, audio_status.str().c_str());
 
 		if (button(conf, ui, in, l.sub_but, l.major_padding))
-			p.set_audio(info.sub_pos + 1);
+			p.set_sub(info.sub_pos + 1);
 		text(l.sub_icon, l.minor_padding, conf.ui_text_col, icon_font, SUBTITLE_ICON);
         std::stringstream sub_status;
 		sub_status << " " << info.sub_pos << "/" << info.sub_count;
