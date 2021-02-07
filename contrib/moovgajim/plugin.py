@@ -291,7 +291,7 @@ class MoovPlugin(GajimPlugin):
 				self.send_message(conv, format_status(self.moov.get_status()))
 			elif session['type'] == 'search':
 				self.conv = conv
-				for video_file in session['search']['files']:
+				for video_file in session['files']:
 					self.moov.append(video_file)
 				self.moov.index(session['playlist_position'])
 				self.moov.seek(session['time'])
