@@ -18,3 +18,4 @@ youtube-dl.exe
 *.dll
 contrib/moovgajim/db.json
 todo.txt
+.venv
