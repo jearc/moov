@@ -16,9 +16,10 @@ def download_info(url):
         'duration': j['duration'] if 'duration' in j else None
     }
 
-def video_search(directory, keywords):
+def video_search(directory, search):
     if not os.path.isdir(directory):
         return None
+    keywords = search.split()
     video_filetypes = ["mp4", "mkv", "avi", "ogm"]
     videos = []
     for root, subdirs, files in os.walk(directory):
@@ -27,7 +28,7 @@ def video_search(directory, keywords):
                 continue
             match = True
             for keyword in keywords:
-                if not re.search(keyword, f, re.IGNORECASE):
+                if not keyword.lower() in f.lower():
                     match = False
                     break
             if match:
