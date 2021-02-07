@@ -209,19 +209,21 @@ class MoovPlugin(GajimPlugin):
 		elif tokens[0] == '.ladd' and db_enabled:
 			search = message[6:]
 
-			results = moovdb.video_search(self.config['VIDEO_DIR'], search)
-			if results is None:
-				self.send_message(conv, 'error: no video directory set')
-				return
-			if len(results) == 0:
-				self.send_message(conv, 'no matches found')
-				return
+			def f(results):
+				if results is None:
+					self.send_message(conv, 'error: no video directory set')
+					return
+				if len(results) == 0:
+					self.send_message(conv, 'no matches found')
+					return
+				(index, session, dupe) = self.db.add_search(search, results)
+				self.db.set_top(index)
+				text = "added " + moovdb.format_session_text(index, session)
+				xhtml = "added " + moovdb.format_session_html(index, session)
+				self.send_message(conv, text, xhtml=xhtml)
 
-			(index, session, dupe) = self.db.add_search(search, results)
-			self.db.set_top(index)
-			text = "added " + moovdb.format_session_text(index, session)
-			xhtml = "added " + moovdb.format_session_html(index, session)
-			self.send_message(conv, text, xhtml=xhtml)
+			self.search_then(search, f)
+
 		elif tokens[0] == '.lor':
 			match = lor_pattern.match(message[5:])
 			if match is None:
@@ -230,20 +232,24 @@ class MoovPlugin(GajimPlugin):
 			search = match.group(1)
 			playlist_position = int(match.group(2)) - 1
 			time = parse_time(match.group(3))
-			results = moovdb.video_search(self.config['VIDEO_DIR'], search)
-			if results is None:
-				self.send_message(conv, 'error: no video directory set')
-				return
-			if len(results) == 0:
-				conv.send('no matches found')
-				return
-			self.conv = conv
-			self.open_moov()
-			for video_file in results:
-				self.moov.append(video_file)
-			self.moov.index(playlist_position)
-			self.moov.seek(time)
-			self.send_message(conv, format_status(self.moov.get_status()))
+
+			def f():
+				if results is None:
+					self.send_message(conv, 'error: no video directory set')
+					return
+				if len(results) == 0:
+					conv.send('no matches found')
+					return
+				self.conv = conv
+				self.open_moov()
+				for video_file in results:
+					self.moov.append(video_file)
+				self.moov.index(playlist_position)
+				self.moov.seek(time)
+				self.send_message(conv, format_status(self.moov.get_status()))
+
+			self.search_then(search, f)
+
 		elif tokens[0] == '.list' and db_enabled:
 			session_list = self.db.list()
 			if len(session_list) != 0:
@@ -375,6 +381,14 @@ class MoovPlugin(GajimPlugin):
 			GLib.idle_add(callback, info)
 		except:
 			GLib.idle_add(self.send_message, conv, 'error: could not get video information')
+
+	def search_then(self, search, callback):
+		video_dir = self.config['VIDEO_DIR']
+		def f():
+			results = moovdb.video_search(video_dir, search)
+			GLib.idle_add(callback, results)
+		t = Thread(target=f)
+		t.start()
 
 	def handle_control(self, control_command):
 		p = control_command['playlist_position'] + 1
