@@ -90,6 +90,7 @@ class MoovPlugin(GajimPlugin):
 		self.description = _('Adds Moov support to Gajim')
 		self.config_dialog = partial(MoovConfigDialog, self)
 		self.config_default_values = {
+			'DB_ENABLED': (True, ''),
 			'VIDEO_DIR': (
 				None,
 				'Directory for local video search'),
@@ -117,10 +118,17 @@ class MoovPlugin(GajimPlugin):
 			'decrypted-message-received': (ged.PREGUI, self._on_message_received),
 			'message-sent': (ged.PREGUI, self._on_message_sent),
 		}
-		db_path = Path(configpaths.get('PLUGINS_DATA')) / 'moov' / 'db.json'
-		self.db = moovdb.MoovDB(db_path)
+		if self.config['DB_ENABLED']:
+			db_path = Path(configpaths.get('PLUGINS_DATA')) / 'moov' / 'db.json'
+			self.db = moovdb.MoovDB(db_path)
 
 	def update(self, data):
+		if data == 'DB_ENABLED':
+			if self.config['DB_ENABLED']:
+				db_path = Path(configpaths.get('PLUGINS_DATA')) / 'moov' / 'db.json'
+				self.db = moovdb.MoovDB(db_path)
+			else:
+				self.db = None
 		if self.moov is not None and self.moov.alive():
 			if data in color_properties:
 				self.moov.set_property(data, convert_color(self.config[data]))

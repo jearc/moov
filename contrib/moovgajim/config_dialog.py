@@ -83,6 +83,14 @@ class MoovConfigDialog(SettingsDialog):
 
         settings = [
             Setting(
+                SettingKind.SWITCH,
+                _('Enable database'),
+                SettingType.VALUE,
+                self.plugin.config['DB_ENABLED'],
+                callback=self._on_setting,
+                data='DB_ENABLED',
+            ),
+            Setting(
                 'DirectoryChooserSetting',
                 _('Video directory'),
                 SettingType.VALUE,
