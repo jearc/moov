@@ -33,7 +33,7 @@ installgajim:
 	@cp -f contrib/moovgajim/moovdb.py ~/.local/share/gajim/plugins/moovgajim
 	@cp -f contrib/moovgajim/plugin.py ~/.local/share/gajim/plugins/moovgajim
 	@cp -f contrib/moovgajim/config_dialog.py ~/.local/share/gajim/plugins/moovgajim
-	@cp -f moov.py ~/.local/share/gajim/plugins/moovgajim
+	@cp -f contrib/moovgajim/moov.py ~/.local/share/gajim/plugins/moovgajim
 
 uninstall:
 	@echo 'Removing moov from /usr/local/bin.'
