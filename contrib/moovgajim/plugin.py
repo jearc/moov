@@ -208,7 +208,7 @@ class MoovPlugin(GajimPlugin):
 				self.send_message(conv, 'no matches found')
 				return
 
-			(index, session, dupe) = self.db.add_search(search, len(results))
+			(index, session, dupe) = self.db.add_search(search, results)
 			self.db.set_top(index)
 			text = "added " + moovdb.format_session_text(index, session)
 			xhtml = "added " + moovdb.format_session_html(index, session)
@@ -281,12 +281,8 @@ class MoovPlugin(GajimPlugin):
 				self.send_message(conv, f'.o {session["video_info"]["url"]} {format_time(session["time"])}')
 				self.send_message(conv, format_status(self.moov.get_status()))
 			elif session['type'] == 'search':
-				results = moovdb.video_search(self.config['VIDEO_DIR'], session['search'])
-				if len(results) == 0 or len(results) != session['playlist_count']:
-					conv.send('error: videos deleted')
-					return
 				self.conv = conv
-				for video_file in results:
+				for video_file in session['search']['files']:
 					self.moov.append(video_file)
 				self.moov.index(session['playlist_position'])
 				self.moov.seek(session['time'])

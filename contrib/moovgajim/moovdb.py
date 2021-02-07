@@ -135,7 +135,7 @@ class MoovDB:
         self._save()
         return (len(self._db) - 1, self.top(), False)
 
-    def add_search(self, search, playlist_count):
+    def add_search(self, search, files):
         for i, s in enumerate(self._db):
             if s['type'] == 'search' and s['search'] == search:
                 return (i, s, True)
@@ -143,8 +143,9 @@ class MoovDB:
             'id': self._session_counter,
             'type': 'search',
             'search': search,
+            'files': files,
             'playlist_position': 0,
-            'playlist_count': playlist_count,
+            'playlist_count': len(files),
             'time': 0
         })
         self._session_counter += 1
