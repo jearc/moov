@@ -242,7 +242,7 @@ void chatbox(Chat &c, UI_State &ui, Layout &l)
 
 		double opacity;
 		{
-			double K = 5.0;
+			double K = 12.0;
 			double F = 3.0;
 			auto m = msg.time;
 			double x = std::chrono::duration<double>(n-std::max(m, e)).count();
