@@ -111,12 +111,14 @@ class MoovDB:
 
     def _save(self):
         # os.makedirs(os.path.dirname(self._save_path), exist_ok=True)
+        data = {
+            'db': self._db,
+            'session_counter': self._session_counter
+        }
         with open(self._save_path, 'w+') as fp:
-            data = {
-                'db': self._db,
-                'session_counter': self._session_counter
-            }
             json.dump(data, fp, indent=4)
+            fp.flush()
+            os.fsync(fp.fileno())
 
     def list(self):
         return self._db
