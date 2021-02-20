@@ -718,6 +718,11 @@ int main(int argc, char **argv)
 		std::string window_title = info.title == "" ? "Moov" : info.title + " - Moov";
 		SDL_SetWindowTitle(window, window_title.c_str());
 
+		if ((info.c_paused && !info.exploring) || (info.e_paused && info.exploring))
+			SDL_EnableScreenSaver();
+		else
+			SDL_DisableScreenSaver();
+
 		if (input.fullscreen)
 			toggle_fullscreen(window, ui);
 
