@@ -195,11 +195,12 @@ class MoovPlugin(GajimPlugin):
 				self.send_message(conv, 'error: invalid args')
 
 			def cb(info):
+				self.conv = conv
+				self.open_moov()
 				if self.db is not None:
 					(index, session, dupe) = self.db.add_url(info, time)
 					self.db.set_top(index)
-				self.conv = conv
-				self.open_moov()
+					self.session_id = session['id']
 				self.moov.append(url)
 				self.moov.seek(time)
 				self.send_message(conv, format_status(self.moov.get_status()))
