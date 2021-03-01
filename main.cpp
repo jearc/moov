@@ -565,6 +565,9 @@ Frame_Input get_sdl_input(SDL_Window *win)
 				in.ret = true;
 				ImGui_ImplSDL2_ProcessEvent(&e);
 				break;
+			case SDLK_ESCAPE:
+				in.exit_fullscreen = true;
+				break;
 			default:
 				ImGui_ImplSDL2_ProcessEvent(&e);
 			}
@@ -724,6 +727,8 @@ int main(int argc, char **argv)
 			SDL_DisableScreenSaver();
 
 		if (input.fullscreen)
+			toggle_fullscreen(window, ui);
+		if (ui.fullscreen && input.exit_fullscreen)
 			toggle_fullscreen(window, ui);
 
 		int w, h;

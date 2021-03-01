@@ -116,6 +116,7 @@ struct Frame_Input {
 	bool scroll_up = false;
 	bool scroll_down = false;
 	bool fullscreen = false;
+	bool exit_fullscreen = false;
 	bool left_up = false;
 };
 
