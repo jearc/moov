@@ -128,6 +128,10 @@ void handle_instruction(Player &p, Chat &c, Configuration &conf, json &j)
 		std::string path = j.at("file_path");
 		p.add_file(path.c_str());
 	}
+	else if (type == "playlist_clear")
+	{
+		p.playlist_clear();
+	}
 	else if (type == "set_playlist_position")
 	{
 		int64_t pos = j.at("position");

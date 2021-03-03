@@ -67,6 +67,7 @@ public:
 	Player();
 	void set_ytdl_format(const char *format);
 	void add_file(const char *file);
+	void playlist_clear();
 	void pause(int paused);
 	void toggle_explore_paused();
 	PlayerInfo get_info();

@@ -58,6 +58,19 @@ void Player::add_file(const char *file)
 	syncmpv();
 }
 
+void Player::playlist_clear()
+{
+	const char *clear[] = { "playlist-clear", NULL };
+	const char *remove_current[] = { "playlist-remove", "current", NULL };
+	mpv_command(mpv, clear);
+	mpv_command(mpv, remove_current);
+	c_pos = 0;
+	c_time = 0;
+	c_paused = true;
+	exploring = false;
+	speed = 1.0;
+}
+
 void Player::create_render_context(mpv_render_context **ctx, mpv_render_param render_params[])
 {
 	mpv_render_context_create(ctx, mpv, render_params);
