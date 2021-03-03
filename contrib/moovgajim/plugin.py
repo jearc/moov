@@ -434,14 +434,14 @@ class MoovPlugin(GajimPlugin):
 			self.kill_moov()
 
 	def relay_message(self, message, own=True):
-		if self.moov and self.moov.alive():
+		if self.moov is not None and self.moov.alive():
 			fg = convert_color(self.config['USER_FG_COLOR' if own else 'PARTNER_FG_COLOR'])
 			bg = convert_color(self.config['USER_BG_COLOR' if own else 'PARTNER_BG_COLOR'])
 			self.moov.put_message(message, fg, bg)
 
 	def kill_moov(self):
 		self.session_id = None
-		if not self.moov:
+		if self.moov is not None:
 			return
 		self.moov.close()
 		self.moov = None
