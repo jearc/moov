@@ -87,6 +87,9 @@ class Moov:
 	def append(self, path):
 		self._write({'type': 'add_file', 'file_path': path})
 
+	def clear_playlist(self):
+		self._write({'type': 'playlist_clear'})
+
 	def set_canonical(self, playlist_position, paused, time):
 		self._write({
 			'type': 'set_canonical',

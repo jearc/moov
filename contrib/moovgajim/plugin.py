@@ -399,7 +399,9 @@ class MoovPlugin(GajimPlugin):
 		self.send_message(self.conv, message)
 
 	def open_moov(self):
-		self.kill_moov()
+		if self.moov is not None:
+			moov.clear_playlist()
+			return
 		self.moov = moov.Moov()
 		self.moov_thread = Thread(target=self.moov_thread_f)
 		self.moov_thread.start()
