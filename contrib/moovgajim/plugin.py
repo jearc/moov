@@ -400,7 +400,7 @@ class MoovPlugin(GajimPlugin):
 
 	def open_moov(self):
 		if self.moov is not None:
-			moov.clear_playlist()
+			self.moov.clear_playlist()
 			return
 		self.moov = moov.Moov()
 		self.moov_thread = Thread(target=self.moov_thread_f)
