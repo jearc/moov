@@ -443,7 +443,7 @@ class MoovPlugin(GajimPlugin):
 
 	def kill_moov(self):
 		self.session_id = None
-		if self.moov is not None:
+		if self.moov is None:
 			return
 		self.moov.close()
 		self.moov = None
