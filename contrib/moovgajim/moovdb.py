@@ -105,12 +105,15 @@ class MoovDB:
     def _load(self, save_path):
         if os.path.isfile(save_path):
             with open(save_path, 'r') as fp:
-                data = json.load(fp)
-                self._db = data['db']
-                self._session_counter = data['session_counter']
+                try:
+                    data = json.load(fp)
+                    self._db = data['db']
+                    self._session_counter = data['session_counter']
+                except:
+                    pass
 
     def _save(self):
-        # os.makedirs(os.path.dirname(self._save_path), exist_ok=True)
+        os.makedirs(os.path.dirname(self._save_path), exist_ok=True)
         data = {
             'db': self._db,
             'session_counter': self._session_counter
