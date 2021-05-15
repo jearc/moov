@@ -698,6 +698,10 @@ int main(int argc, char **argv)
 	UI_State ui;
 	ui.last_activity = std::chrono::steady_clock::now();
 
+	mpvh.add_file("https://www.youtube.com/watch?v=4_6fHw6ML70");
+	mpvh.set_canonical(0, false, 0);
+
+	int nrendercalls = 0;
 	while (1) {
 		bool queue_empty = false;
 		while (!queue_empty)
@@ -754,6 +758,7 @@ int main(int argc, char **argv)
 			{ MPV_RENDER_PARAM_INVALID, nullptr }
 		};
 		mpv_render_context_render(mpv_ctx, params);
+		nrendercalls++;
 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame(window);
@@ -766,7 +771,9 @@ int main(int argc, char **argv)
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		SDL_GL_SwapWindow(window);
+		printf("n render calls: %d\n", nrendercalls);
 	}
+
 
 	return 0;
 }
