@@ -734,8 +734,16 @@ int main(int argc, char **argv)
 
 	auto last_print = gettime();
 
+	double last_frame_time = 0;
+	double max_frame_time = 1.0/60;
+
 	while (1) {
 		t_frame.start();
+
+		if (last_frame_time != 0)
+			SDL_Delay((uint32_t)(1000 * 0.95 * (max_frame_time - last_frame_time)));
+
+		auto frame_start = gettime();
 
 		t_read_stdin.start();
 		//bool queue_empty = false;
@@ -830,6 +838,8 @@ int main(int argc, char **argv)
 		t_gl_swap.start();
 		SDL_GL_SwapWindow(window);
 		t_gl_swap.stop();
+
+		last_frame_time = gettime() - frame_start;
 
 		t_frame.stop();
 
