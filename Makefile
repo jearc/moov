@@ -8,7 +8,7 @@ LIBS = -lGL -ldl -lSDL2 -lmpv -lGLEW -lGLU
 all: moov
 
 moov:
-	g++ -std=c++2a main.cpp mpvh.cpp util.cpp ui.cpp chat.cpp exepath.cpp imgui/imgui_impl_sdl.cpp imgui/imgui.cpp imgui/imgui_draw.cpp imgui/imgui_impl_opengl3.cpp imgui/imgui_widgets.cpp -o moov -lGL -ldl -lSDL2 -lSDL2_image -lmpv -lGLEW -lGLU -lm -lpthread
+	g++ -Ofast -std=c++2a main.cpp mpvh.cpp util.cpp ui.cpp chat.cpp exepath.cpp imgui/imgui_impl_sdl.cpp imgui/imgui.cpp imgui/imgui_draw.cpp imgui/imgui_impl_opengl3.cpp imgui/imgui_widgets.cpp -o moov -lGL -ldl -lSDL2 -lSDL2_image -lmpv -lGLEW -lGLU -lm -lpthread
 
 clean:
 	rm moov $(OBJS)
