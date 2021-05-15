@@ -708,7 +708,11 @@ int main(int argc, char **argv)
 	mpvh.set_canonical(0, false, 0);
 
 	auto t_frame = Timer(100000);
+	auto t_read_stdin = Timer(100000);
+	auto t_sdl_input = Timer(100000);
+	auto t_window_stuff = Timer(100000);
 	auto t_player_update = Timer(100000);
+	auto t_gl_clear = Timer(100000);
 	auto t_mpv_render = Timer(100000);
 	auto t_new_frame = Timer(100000);
 	auto t_layout = Timer(100000);
@@ -721,6 +725,7 @@ int main(int argc, char **argv)
 	while (1) {
 		t_frame.start();
 
+		t_read_stdin.start();
 		bool queue_empty = false;
 		while (!queue_empty)
 		{
@@ -739,13 +744,18 @@ int main(int argc, char **argv)
 				handle_instruction(mpvh, chat, conf, j);
 			}
 		}
+		t_read_stdin.stop();
 
+		t_sdl_input.start();
 		Frame_Input input = get_sdl_input(window);
+		t_sdl_input.stop();
+
 		t_player_update.start();
 		mpvh.update();
+		auto info = mpvh.get_info();
 		t_player_update.stop();
 
-		auto info = mpvh.get_info();
+		t_window_stuff.start();
 		std::string window_title = info.title == "" ? "Moov" : info.title + " - Moov";
 		SDL_SetWindowTitle(window, window_title.c_str());
 
@@ -761,8 +771,13 @@ int main(int argc, char **argv)
 
 		int w, h;
 		SDL_GetWindowSize(window, &w, &h);
-		glClear(GL_COLOR_BUFFER_BIT);
+		t_window_stuff.stop();
 
+		t_gl_clear.start();
+		glClear(GL_COLOR_BUFFER_BIT);
+		t_gl_clear.stop();
+
+		t_mpv_render.start();
 		mpv_opengl_fbo mpfbo{
 			static_cast<int>(MPV_RENDER_PARAM_OPENGL_FBO),
 			w, h, 0
@@ -777,7 +792,6 @@ int main(int argc, char **argv)
 			{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
 			{ MPV_RENDER_PARAM_INVALID, nullptr }
 		};
-		t_mpv_render.start();
 		mpv_render_context_render(mpv_ctx, params);
 		t_mpv_render.stop();
 
@@ -794,11 +808,13 @@ int main(int argc, char **argv)
 		t_create_ui.start();
 		create_ui(window, conf, ui, input, mpvh, l, chat);
 		t_create_ui.stop();
-		glViewport(0, 0, w, h);
+
 		t_imgui_render.start();
+		glViewport(0, 0, w, h);
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		t_imgui_render.stop();
+
 		t_gl_swap.start();
 		SDL_GL_SwapWindow(window);
 		t_gl_swap.stop();
@@ -807,7 +823,11 @@ int main(int argc, char **argv)
 
 		if (gettime() - last_print > 1) {
 			printf("frame         = %f\n", t_frame.moving_average());
-			printf("player update = %f   (%02d%%)\n", t_player_update.moving_average(), (int)(100 * t_player_update.moving_average() / t_frame.moving_average()));
+			printf("read stdin    = %f   (%02d%%)\n", t_player_update.moving_average(), (int)(100 * t_player_update.moving_average() / t_frame.moving_average()));
+			printf("sdl input     = %f   (%02d%%)\n", t_sdl_input.moving_average(), (int)(100 * t_sdl_input.moving_average() / t_frame.moving_average()));
+			printf("window stuff  = %f   (%02d%%)\n", t_window_stuff.moving_average(), (int)(100 * t_window_stuff.moving_average() / t_frame.moving_average()));
+			printf("player update = %f   (%02d%%)\n", t_read_stdin.moving_average(), (int)(100 * t_read_stdin.moving_average() / t_frame.moving_average()));
+			printf("gl clear      = %f   (%02d%%)\n", t_gl_clear.moving_average(), (int)(100 * t_gl_clear.moving_average() / t_frame.moving_average()));
 			printf("mpv render    = %f   (%02d%%)\n", t_mpv_render.moving_average(), (int)(100 * t_mpv_render.moving_average() / t_frame.moving_average()));
 			printf("new frame     = %f   (%02d%%)\n", t_new_frame.moving_average(), (int)(100 * t_new_frame.moving_average() / t_frame.moving_average()));
 			printf("layout        = %f   (%02d%%)\n", t_layout.moving_average(), (int)(100 * t_layout.moving_average() / t_frame.moving_average()));
