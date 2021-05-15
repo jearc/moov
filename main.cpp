@@ -719,18 +719,18 @@ int main(int argc, char **argv)
 	mpvh.add_file("https://www.youtube.com/watch?v=4_6fHw6ML70");
 	mpvh.set_canonical(0, false, 0);
 
-	auto t_frame = Timer(100000);
-	auto t_read_stdin = Timer(100000);
-	auto t_sdl_input = Timer(100000);
-	auto t_window_stuff = Timer(100000);
-	auto t_player_update = Timer(100000);
-	auto t_gl_clear = Timer(100000);
-	auto t_mpv_render = Timer(100000);
-	auto t_new_frame = Timer(100000);
-	auto t_layout = Timer(100000);
-	auto t_create_ui = Timer(100000);
-	auto t_imgui_render = Timer(100000);
-	auto t_gl_swap = Timer(100000);
+	auto t_frame = Timer(200);
+	auto t_read_stdin = Timer(200);
+	auto t_sdl_input = Timer(200);
+	auto t_window_stuff = Timer(200);
+	auto t_player_update = Timer(200);
+	auto t_gl_clear = Timer(200);
+	auto t_mpv_render = Timer(200);
+	auto t_new_frame = Timer(200);
+	auto t_layout = Timer(200);
+	auto t_create_ui = Timer(200);
+	auto t_imgui_render = Timer(200);
+	auto t_gl_swap = Timer(200);
 
 	auto last_print = gettime();
 
