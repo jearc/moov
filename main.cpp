@@ -614,7 +614,11 @@ int main(int argc, char **argv)
 			die("SDL init failed");
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		int errr = SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		if (errr != 0)
+			fprintf(stderr, "COULD NOT SET GL DOUBLEBUFFER TO 1\n");
+		else
+			fprintf(stderr, "SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) succeeded\n");
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -627,7 +631,11 @@ int main(int argc, char **argv)
 		SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 		glewInit();
 
-		SDL_GL_SetSwapInterval(1);
+		errr = SDL_GL_SetSwapInterval(1);
+		if (errr != 0)
+			fprintf(stderr, "COULD NOT SET SWAP INTERVAL TO 1\n\n");
+		else
+			fprintf(stderr, "SDL_GL_SetSwapInterval(1) succeeded\n\n");
 
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
