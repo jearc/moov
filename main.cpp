@@ -807,13 +807,13 @@ int main(int argc, char **argv)
 
 		if (gettime() - last_print > 1) {
 			printf("frame         = %f\n", t_frame.moving_average());
-			printf("player update = %f\n", t_player_update.moving_average());
-			printf("mpv render    = %f\n", t_mpv_render.moving_average());
-			printf("new frame     = %f\n", t_new_frame.moving_average());
-			printf("layout        = %f\n", t_layout.moving_average());
-			printf("create ui     = %f\n", t_create_ui.moving_average());
-			printf("imgui render  = %f\n", t_imgui_render.moving_average());
-			printf("gl swap       = %f\n", t_gl_swap.moving_average());
+			printf("player update = %f   (%02d%%)\n", t_player_update.moving_average(), (int)(100 * t_player_update.moving_average() / t_frame.moving_average()));
+			printf("mpv render    = %f   (%02d%%)\n", t_mpv_render.moving_average(), (int)(100 * t_mpv_render.moving_average() / t_frame.moving_average()));
+			printf("new frame     = %f   (%02d%%)\n", t_new_frame.moving_average(), (int)(100 * t_new_frame.moving_average() / t_frame.moving_average()));
+			printf("layout        = %f   (%02d%%)\n", t_layout.moving_average(), (int)(100 * t_layout.moving_average() / t_frame.moving_average()));
+			printf("create ui     = %f   (%02d%%)\n", t_create_ui.moving_average(), (int)(100 * t_create_ui.moving_average() / t_frame.moving_average()));
+			printf("imgui render  = %f   (%02d%%)\n", t_imgui_render.moving_average(), (int)(100 * t_imgui_render.moving_average() / t_frame.moving_average()));
+			printf("gl swap       = %f   (%02d%%)\n", t_gl_swap.moving_average(), (int)(100 * t_gl_swap.moving_average() / t_frame.moving_average()));
 			printf("\n\n");
 			last_print = gettime();
 		}
