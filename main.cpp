@@ -746,51 +746,51 @@ int main(int argc, char **argv)
 		auto frame_start = gettime();
 
 		t_read_stdin.start();
-		//bool queue_empty = false;
-		//while (!queue_empty)
-		//{
-		//	json j;
-		//	{
-		//		std::lock_guard<std::mutex> guard(input_lock);
-		//		queue_empty = input_queue.empty();
-		//		if (!queue_empty)
-		//		{
-		//			j = input_queue.front();
-		//			input_queue.pop();
-		//		}
-		//	}
-		//	if (!queue_empty)
-		//	{
-		//		handle_instruction(mpvh, chat, conf, j);
-		//	}
-		//}
+		bool queue_empty = false;
+		while (!queue_empty)
+		{
+			json j;
+			{
+				std::lock_guard<std::mutex> guard(input_lock);
+				queue_empty = input_queue.empty();
+				if (!queue_empty)
+				{
+					j = input_queue.front();
+					input_queue.pop();
+				}
+			}
+			if (!queue_empty)
+			{
+				handle_instruction(mpvh, chat, conf, j);
+			}
+		}
 		t_read_stdin.stop();
 
 		t_sdl_input.start();
-		//Frame_Input input = get_sdl_input(window);
+		Frame_Input input = get_sdl_input(window);
 		t_sdl_input.stop();
 
 		t_player_update.start();
-		//mpvh.update();
-		//auto info = mpvh.get_info();
+		mpvh.update();
+		auto info = mpvh.get_info();
 		t_player_update.stop();
 
 		t_window_stuff.start();
-		//std::string window_title = info.title == "" ? "Moov" : info.title + " - Moov";
-		//SDL_SetWindowTitle(window, window_title.c_str());
+		std::string window_title = info.title == "" ? "Moov" : info.title + " - Moov";
+		SDL_SetWindowTitle(window, window_title.c_str());
 
-		//if ((info.c_paused && !info.exploring) || (info.e_paused && info.exploring))
-		//	SDL_EnableScreenSaver();
-		//else
-		//	SDL_DisableScreenSaver();
+		if ((info.c_paused && !info.exploring) || (info.e_paused && info.exploring))
+			SDL_EnableScreenSaver();
+		else
+			SDL_DisableScreenSaver();
 
-		//if (input.fullscreen)
-		//	toggle_fullscreen(window, ui);
-		//if (ui.fullscreen && input.exit_fullscreen)
-		//	toggle_fullscreen(window, ui);
+		if (input.fullscreen)
+			toggle_fullscreen(window, ui);
+		if (ui.fullscreen && input.exit_fullscreen)
+			toggle_fullscreen(window, ui);
 
-		//int w, h;
-		//SDL_GetWindowSize(window, &w, &h);
+		int w, h;
+		SDL_GetWindowSize(window, &w, &h);
 		t_window_stuff.stop();
 
 		t_gl_clear.start();
@@ -798,41 +798,41 @@ int main(int argc, char **argv)
 		t_gl_clear.stop();
 
 		t_mpv_render.start();
-		//mpv_opengl_fbo mpfbo{
-		//	static_cast<int>(MPV_RENDER_PARAM_OPENGL_FBO),
-		//	w, h, 0
-		//};
-		//int flip_y = 1;
+		mpv_opengl_fbo mpfbo{
+			static_cast<int>(MPV_RENDER_PARAM_OPENGL_FBO),
+			w, h, 0
+		};
+		int flip_y = 1;
 
-		//int block = 0;
+		int block = 0;
 
-		//mpv_render_param params[] = {
-		//	{ MPV_RENDER_PARAM_OPENGL_FBO, &mpfbo },
-		//	{ MPV_RENDER_PARAM_FLIP_Y, &flip_y },
-		//	{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
-		//	{ MPV_RENDER_PARAM_INVALID, nullptr }
-		//};
-		//mpv_render_context_render(mpv_ctx, params);
+		mpv_render_param params[] = {
+			{ MPV_RENDER_PARAM_OPENGL_FBO, &mpfbo },
+			{ MPV_RENDER_PARAM_FLIP_Y, &flip_y },
+			{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
+			{ MPV_RENDER_PARAM_INVALID, nullptr }
+		};
+		mpv_render_context_render(mpv_ctx, params);
 		t_mpv_render.stop();
 
 		t_new_frame.start();
-		//ImGui_ImplOpenGL3_NewFrame();
-		//ImGui_ImplSDL2_NewFrame(window);
-		//ImGui::NewFrame();
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplSDL2_NewFrame(window);
+		ImGui::NewFrame();
 		t_new_frame.stop();
 
 		t_layout.start();
-		//Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
+		Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
 		t_layout.stop();
 
 		t_create_ui.start();
-		//create_ui(window, conf, ui, input, mpvh, l, chat);
+		create_ui(window, conf, ui, input, mpvh, l, chat);
 		t_create_ui.stop();
 
 		t_imgui_render.start();
-		//glViewport(0, 0, w, h);
-		//ImGui::Render();
-		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		glViewport(0, 0, w, h);
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		t_imgui_render.stop();
 
 		t_gl_swap.start();
