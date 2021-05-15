@@ -637,6 +637,10 @@ int main(int argc, char **argv)
 		else
 			fprintf(stderr, "SDL_GL_SetSwapInterval(1) succeeded\n\n");
 
+
+		SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
+
+
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGui::StyleColorsClassic();
