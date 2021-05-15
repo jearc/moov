@@ -142,7 +142,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -160,6 +160,7 @@
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mpvh.cpp" />
+    <ClCompile Include="Timer.cpp" />
     <ClCompile Include="ui.cpp" />
     <ClCompile Include="util.cpp" />
   </ItemGroup>
@@ -171,6 +172,7 @@
     <ClInclude Include="imgui\imgui_internal.h" />
     <ClInclude Include="json.h" />
     <ClInclude Include="moov.h" />
+    <ClInclude Include="Timer.h" />
     <ClInclude Include="ui.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

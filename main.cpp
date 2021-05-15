@@ -23,6 +23,7 @@
 #include "moov.h"
 #include "ui.h"
 #include "json.h"
+#include "Timer.h"
 
 using json = nlohmann::json;
 
@@ -706,9 +707,19 @@ int main(int argc, char **argv)
 	mpvh.add_file("https://www.youtube.com/watch?v=4_6fHw6ML70");
 	mpvh.set_canonical(0, false, 0);
 
-	int nrendercalls = 0;
+	auto t_frame = Timer(100000);
+	auto t_player_update = Timer(100000);
+	auto t_mpv_render = Timer(100000);
+	auto t_new_frame = Timer(100000);
+	auto t_layout = Timer(100000);
+	auto t_create_ui = Timer(100000);
+	auto t_imgui_render = Timer(100000);
+	auto t_gl_swap = Timer(100000);
+
+	auto start_time = gettime();
+
 	while (1) {
-		double t_frame_start = gettime();
+		t_frame.start();
 
 		bool queue_empty = false;
 		while (!queue_empty)
@@ -730,9 +741,9 @@ int main(int argc, char **argv)
 		}
 
 		Frame_Input input = get_sdl_input(window);
-		auto t_pre_player_update = gettime();
+		t_player_update.start();
 		mpvh.update();
-		auto t_post_player_update = gettime();
+		t_player_update.stop();
 
 		auto info = mpvh.get_info();
 		std::string window_title = info.title == "" ? "Moov" : info.title + " - Moov";
@@ -766,45 +777,45 @@ int main(int argc, char **argv)
 			{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
 			{ MPV_RENDER_PARAM_INVALID, nullptr }
 		};
-		auto t_pre_mpv_render = gettime();
+		t_mpv_render.start();
 		mpv_render_context_render(mpv_ctx, params);
-		auto t_post_mpv_render = gettime();
-		nrendercalls++;
+		t_mpv_render.stop();
 
-		auto t_pre_new_frame = gettime();
+		t_new_frame.start();
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame(window);
 		ImGui::NewFrame();
-		auto t_post_new_frame = gettime();
+		t_new_frame.stop();
 
-		auto t_pre_layout = gettime();
+		t_layout.start();
 		Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
-		auto t_post_layout = gettime();
+		t_layout.stop();
 
-		auto t_pre_create_ui = gettime();
+		t_create_ui.start();
 		create_ui(window, conf, ui, input, mpvh, l, chat);
-		auto t_post_create_ui = gettime();
+		t_create_ui.stop();
 		glViewport(0, 0, w, h);
-		auto t_pre_imgui_render = gettime();
+		t_imgui_render.start();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-		auto t_post_imgui_render = gettime();
-		auto t_pre_glswap = gettime();
+		t_imgui_render.stop();
+		t_gl_swap.start();
 		SDL_GL_SwapWindow(window);
-		auto t_post_glswap = gettime();
-		printf("n render calls: %d\n", nrendercalls);
+		t_gl_swap.stop();
 
-		auto t_frame_end = gettime();
+		t_frame.stop();
 
-		printf("\n");
-		printf("frame time    = %f\n", t_frame_end - t_frame_start);
-		printf("player update = %f\n", t_post_player_update - t_pre_player_update);
-		printf("mpv render    = %f\n", t_post_mpv_render - t_pre_mpv_render);
-		printf("new frame     = %f\n", t_post_new_frame - t_pre_new_frame);
-		printf("layout        = %f\n", t_post_layout - t_pre_layout);
-		printf("create ui     = %f\n", t_post_create_ui - t_pre_create_ui);
-		printf("imgui render  = %f\n", t_post_imgui_render - t_pre_imgui_render);
-		printf("gl swap       = %f\n", t_post_glswap - t_pre_glswap);
+		if (gettime() - start_time > 30) {
+			printf("frame         = %f\n", t_frame.moving_average());
+			printf("player update = %f\n", t_player_update.moving_average());
+			printf("mpv render    = %f\n", t_mpv_render.moving_average());
+			printf("new frame     = %f\n", t_new_frame.moving_average());
+			printf("layout        = %f\n", t_layout.moving_average());
+			printf("create ui     = %f\n", t_create_ui.moving_average());
+			printf("imgui render  = %f\n", t_imgui_render.moving_average());
+			printf("gl swap       = %f\n", t_gl_swap.moving_average());
+			break;
+		}
 	}
 
 
