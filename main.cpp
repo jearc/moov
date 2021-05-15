@@ -716,7 +716,7 @@ int main(int argc, char **argv)
 	auto t_imgui_render = Timer(100000);
 	auto t_gl_swap = Timer(100000);
 
-	auto start_time = gettime();
+	auto last_print = gettime();
 
 	while (1) {
 		t_frame.start();
@@ -805,7 +805,7 @@ int main(int argc, char **argv)
 
 		t_frame.stop();
 
-		if (gettime() - start_time > 30) {
+		if (gettime() - last_print > 1) {
 			printf("frame         = %f\n", t_frame.moving_average());
 			printf("player update = %f\n", t_player_update.moving_average());
 			printf("mpv render    = %f\n", t_mpv_render.moving_average());
@@ -814,7 +814,8 @@ int main(int argc, char **argv)
 			printf("create ui     = %f\n", t_create_ui.moving_average());
 			printf("imgui render  = %f\n", t_imgui_render.moving_average());
 			printf("gl swap       = %f\n", t_gl_swap.moving_average());
-			break;
+			printf("\n\n");
+			last_print = gettime();
 		}
 	}
 
