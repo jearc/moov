@@ -823,10 +823,10 @@ int main(int argc, char **argv)
 
 		if (gettime() - last_print > 1) {
 			printf("frame         = %f\n", t_frame.moving_average());
-			printf("read stdin    = %f   (%02d%%)\n", t_player_update.moving_average(), (int)(100 * t_player_update.moving_average() / t_frame.moving_average()));
+			printf("read stdin    = %f   (%02d%%)\n", t_read_stdin.moving_average(), (int)(100 * t_read_stdin.moving_average() / t_frame.moving_average()));
 			printf("sdl input     = %f   (%02d%%)\n", t_sdl_input.moving_average(), (int)(100 * t_sdl_input.moving_average() / t_frame.moving_average()));
 			printf("window stuff  = %f   (%02d%%)\n", t_window_stuff.moving_average(), (int)(100 * t_window_stuff.moving_average() / t_frame.moving_average()));
-			printf("player update = %f   (%02d%%)\n", t_read_stdin.moving_average(), (int)(100 * t_read_stdin.moving_average() / t_frame.moving_average()));
+			printf("player update = %f   (%02d%%)\n", t_player_update.moving_average(), (int)(100 * t_player_update.moving_average() / t_frame.moving_average()));
 			printf("gl clear      = %f   (%02d%%)\n", t_gl_clear.moving_average(), (int)(100 * t_gl_clear.moving_average() / t_frame.moving_average()));
 			printf("mpv render    = %f   (%02d%%)\n", t_mpv_render.moving_average(), (int)(100 * t_mpv_render.moving_average() / t_frame.moving_average()));
 			printf("new frame     = %f   (%02d%%)\n", t_new_frame.moving_average(), (int)(100 * t_new_frame.moving_average() / t_frame.moving_average()));
