@@ -598,6 +598,11 @@ Frame_Input get_sdl_input(SDL_Window *win)
 	return in;
 }
 
+double gettime()
+{
+	return SDL_GetPerformanceCounter() / (double)SDL_GetPerformanceFrequency();
+}
+
 int main(int argc, char **argv)
 {
 	float font_size;
@@ -703,6 +708,8 @@ int main(int argc, char **argv)
 
 	int nrendercalls = 0;
 	while (1) {
+		double t_frame_start = gettime();
+
 		bool queue_empty = false;
 		while (!queue_empty)
 		{
@@ -723,7 +730,9 @@ int main(int argc, char **argv)
 		}
 
 		Frame_Input input = get_sdl_input(window);
+		auto t_pre_player_update = gettime();
 		mpvh.update();
+		auto t_post_player_update = gettime();
 
 		auto info = mpvh.get_info();
 		std::string window_title = info.title == "" ? "Moov" : info.title + " - Moov";
@@ -757,21 +766,45 @@ int main(int argc, char **argv)
 			{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
 			{ MPV_RENDER_PARAM_INVALID, nullptr }
 		};
+		auto t_pre_mpv_render = gettime();
 		mpv_render_context_render(mpv_ctx, params);
+		auto t_post_mpv_render = gettime();
 		nrendercalls++;
 
+		auto t_pre_new_frame = gettime();
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame(window);
 		ImGui::NewFrame();
+		auto t_post_new_frame = gettime();
 
+		auto t_pre_layout = gettime();
 		Layout l = calculate_layout(font_size, w, h, text_font, icon_font);
+		auto t_post_layout = gettime();
 
+		auto t_pre_create_ui = gettime();
 		create_ui(window, conf, ui, input, mpvh, l, chat);
+		auto t_post_create_ui = gettime();
 		glViewport(0, 0, w, h);
+		auto t_pre_imgui_render = gettime();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		auto t_post_imgui_render = gettime();
+		auto t_pre_glswap = gettime();
 		SDL_GL_SwapWindow(window);
+		auto t_post_glswap = gettime();
 		printf("n render calls: %d\n", nrendercalls);
+
+		auto t_frame_end = gettime();
+
+		printf("\n");
+		printf("frame time    = %f\n", t_frame_end - t_frame_start);
+		printf("player update = %f\n", t_post_player_update - t_pre_player_update);
+		printf("mpv render    = %f\n", t_post_mpv_render - t_pre_mpv_render);
+		printf("new frame     = %f\n", t_post_new_frame - t_pre_new_frame);
+		printf("layout        = %f\n", t_post_layout - t_pre_layout);
+		printf("create ui     = %f\n", t_post_create_ui - t_pre_create_ui);
+		printf("imgui render  = %f\n", t_post_imgui_render - t_pre_imgui_render);
+		printf("gl swap       = %f\n", t_post_glswap - t_pre_glswap);
 	}
 
 
