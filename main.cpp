@@ -716,7 +716,7 @@ int main(int argc, char **argv)
 	UI_State ui;
 	ui.last_activity = std::chrono::steady_clock::now();
 
-	mpvh.add_file("https://www.youtube.com/watch?v=4_6fHw6ML70");
+	mpvh.add_file("https://www.youtube.com/watch?v=ZVNvhuOfpx0");
 	mpvh.set_canonical(0, false, 0);
 
 	auto t_frame = Timer(200);
