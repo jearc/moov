@@ -807,7 +807,7 @@ int main(int argc, char **argv)
 		mpv_render_param params[] = {
 			{ MPV_RENDER_PARAM_OPENGL_FBO, &mpfbo },
 			{ MPV_RENDER_PARAM_FLIP_Y, &flip_y },
-			{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
+			//{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
 			{ MPV_RENDER_PARAM_INVALID, nullptr }
 		};
 		mpv_render_context_render(mpv_ctx, params);
@@ -857,9 +857,9 @@ int main(int argc, char **argv)
 			last_print = gettime();
 		}
 
-		last_frame_time = gettime() - frame_start;
-		printf("sleeping for %d ms\n", (int)(1000 * 0.95 * std::max(0.0, max_frame_time - last_frame_time)));
-		SDL_Delay((uint32_t)(1000 * 0.95 * std::max(0.0, max_frame_time - last_frame_time)));
+		//last_frame_time = gettime() - frame_start;
+		//printf("sleeping for %d ms\n", (int)(1000 * 0.95 * std::max(0.0, max_frame_time - last_frame_time)));
+		//SDL_Delay((uint32_t)(1000 * 0.95 * std::max(0.0, max_frame_time - last_frame_time)));
 	}
 
 
