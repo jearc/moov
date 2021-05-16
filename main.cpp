@@ -750,7 +750,9 @@ int main(int argc, char **argv)
 		mpv_render_param params[] = {
 			{ MPV_RENDER_PARAM_OPENGL_FBO, &mpfbo },
 			{ MPV_RENDER_PARAM_FLIP_Y, &flip_y },
+#ifndef __linux__
 			{ MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
+#endif
 			{ MPV_RENDER_PARAM_INVALID, nullptr }
 		};
 		mpv_render_context_render(mpv_ctx, params);
