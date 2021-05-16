@@ -768,6 +768,11 @@ int main(int argc, char **argv)
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		SDL_GL_SwapWindow(window);
+
+#ifdef __linux__
+		if ((info.c_paused && !info.exploring) || (info.e_paused && info.exploring))
+			SDL_Delay(14);
+#endif
 	}
 
 	return 0;
